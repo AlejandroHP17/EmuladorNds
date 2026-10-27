@@ -117,6 +117,8 @@ fun EmuladorStartScreen(
             NdsScreens(
                 topFrame = { topFrame },
                 bottomFrame = { bottomFrame },
+                onStylusMoved = viewModel::onStylusMoved,
+                onStylusReleased = viewModel::onStylusReleased,
                 modifier = Modifier
                     .weight(1f)
                     .padding(top = 8.dp),
