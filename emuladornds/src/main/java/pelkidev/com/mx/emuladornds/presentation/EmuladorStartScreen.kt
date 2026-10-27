@@ -29,6 +29,8 @@ fun EmuladorStartScreen(
     viewModel: EmuladorStartViewModel = viewModel { EmuladorStartViewModel() },
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val topFrame by viewModel.topFrame.collectAsStateWithLifecycle()
+    val bottomFrame by viewModel.bottomFrame.collectAsStateWithLifecycle()
     val context = LocalContext.current
     BackHandler(onBack = onExit)
     val pickNdsFile = rememberLauncherForActivityResult(
@@ -55,20 +57,36 @@ fun EmuladorStartScreen(
         ) {
             Text(text = "Elegir .nds")
         }
-        uiState.loadedFileName?.let { name ->
+        if (uiState.loadedFileName == null) {
+            if (uiState.showInvalidFileMessage) {
+                Text(
+                    text = "Elige un archivo .nds",
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 16.dp),
+                )
+            }
+        } else {
             Text(
-                text = name,
+                text = uiState.loadedFileName.orEmpty(),
                 style = MaterialTheme.typography.bodyLarge,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(top = 16.dp),
             )
-        }
-        if (uiState.showInvalidFileMessage) {
-            Text(
-                text = "Elige un archivo .nds",
-                style = MaterialTheme.typography.bodyLarge,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 16.dp),
+            if (uiState.showInvalidFileMessage) {
+                Text(
+                    text = "Elige un archivo .nds",
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(top = 8.dp),
+                )
+            }
+            NdsScreens(
+                topFrame = { topFrame },
+                bottomFrame = { bottomFrame },
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(top = 16.dp),
             )
         }
     }
