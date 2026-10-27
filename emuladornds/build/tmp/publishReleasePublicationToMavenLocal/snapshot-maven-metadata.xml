@@ -3,7 +3,7 @@
   <groupId>pelkidev.com.mx.minijuegos</groupId>
   <artifactId>emuladornds</artifactId>
   <versioning>
-    <lastUpdated>20261027200032</lastUpdated>
+    <lastUpdated>20261027200302</lastUpdated>
     <snapshot>
       <localCopy>true</localCopy>
     </snapshot>
@@ -11,23 +11,23 @@
       <snapshotVersion>
         <extension>aar</extension>
         <value>1.0.0-SNAPSHOT</value>
-        <updated>20261027200032</updated>
+        <updated>20261027200302</updated>
       </snapshotVersion>
       <snapshotVersion>
         <extension>pom</extension>
         <value>1.0.0-SNAPSHOT</value>
-        <updated>20261027200032</updated>
+        <updated>20261027200302</updated>
       </snapshotVersion>
       <snapshotVersion>
         <extension>module</extension>
         <value>1.0.0-SNAPSHOT</value>
-        <updated>20261027200032</updated>
+        <updated>20261027200302</updated>
       </snapshotVersion>
       <snapshotVersion>
         <classifier>sources</classifier>
         <extension>jar</extension>
         <value>1.0.0-SNAPSHOT</value>
-        <updated>20261027200032</updated>
+        <updated>20261027200302</updated>
       </snapshotVersion>
     </snapshotVersions>
   </versioning>
