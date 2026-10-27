@@ -8,6 +8,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import pelkidev.com.mx.emuladornds.data.NdsButton
 import pelkidev.com.mx.emuladornds.data.NdsCore
 import pelkidev.com.mx.emuladornds.domain.NdsFrame
 
@@ -87,14 +88,66 @@ class EmuladorStartViewModelTest {
         assertTrue(cores.single().closed)
     }
 
+    @Test
+    fun twoControls_heldTogether() {
+        val cores = mutableListOf<FakeCore>()
+        val viewModel = EmuladorStartViewModel(
+            startCore = { FakeCore().also(cores::add) },
+            autoAdvance = false,
+        )
+
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+        viewModel.onControlChanged(NdsButton.A, true)
+        viewModel.onControlChanged(NdsButton.UP, true)
+
+        assertEquals(setOf(NdsButton.A, NdsButton.UP), cores.single().held)
+    }
+
+    @Test
+    fun releasingControl_clearsThatButton() {
+        val cores = mutableListOf<FakeCore>()
+        val viewModel = EmuladorStartViewModel(
+            startCore = { FakeCore().also(cores::add) },
+            autoAdvance = false,
+        )
+
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+        viewModel.onControlChanged(NdsButton.START, true)
+        viewModel.onControlChanged(NdsButton.LEFT, true)
+        viewModel.onControlChanged(NdsButton.START, false)
+
+        assertEquals(setOf(NdsButton.LEFT), cores.single().held)
+    }
+
+    @Test
+    fun newRom_startsWithEmptyHold() {
+        val cores = mutableListOf<FakeCore>()
+        val viewModel = EmuladorStartViewModel(
+            startCore = { FakeCore().also(cores::add) },
+            autoAdvance = false,
+        )
+
+        viewModel.onFileChosen("uno.nds") { "/tmp/uno.nds" }
+        viewModel.onControlChanged(NdsButton.A, true)
+        viewModel.onFileChosen("dos.nds") { "/tmp/dos.nds" }
+
+        assertEquals(emptySet<NdsButton>(), cores[1].held)
+    }
+
     private class FakeCore : NdsCore {
         var closed = false
+            private set
+        var held: Set<NdsButton> = emptySet()
             private set
 
         override fun step(): Pair<NdsFrame, NdsFrame> {
             val pixels = IntArray(NdsFrame.WIDTH * NdsFrame.HEIGHT) { KNOWN_PIXEL }
             val frame = NdsFrame(pixels)
             return frame to NdsFrame(pixels)
+        }
+
+        override fun hold(buttons: Set<NdsButton>) {
+            held = buttons
         }
 
         override fun close() {

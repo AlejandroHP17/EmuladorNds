@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import pelkidev.com.mx.emuladornds.data.MelonDsCore
+import pelkidev.com.mx.emuladornds.data.NdsButton
 import pelkidev.com.mx.emuladornds.data.NdsCore
 import pelkidev.com.mx.emuladornds.domain.NdsFrame
 import pelkidev.com.mx.emuladornds.domain.NdsPace
@@ -38,6 +39,7 @@ class EmuladorStartViewModel(
 
     private var core: NdsCore? = null
     private var paceJob: Job? = null
+    private var heldButtons = emptySet<NdsButton>()
 
     fun onFileChosen(fileName: String, prepareRomPath: () -> String?) {
         if (!isNdsFileName(fileName)) {
@@ -46,6 +48,7 @@ class EmuladorStartViewModel(
         }
         val romPath = prepareRomPath() ?: return
         stopCore()
+        heldButtons = emptySet()
         val pattern = patternFrame()
         _topFrame.value = pattern
         _bottomFrame.value = pattern
@@ -60,10 +63,17 @@ class EmuladorStartViewModel(
         } catch (_: RuntimeException) {
             null
         } ?: return
+        opened.hold(emptySet())
         core = opened
         if (autoAdvance) {
             startPace()
         }
+    }
+
+    fun onControlChanged(button: NdsButton, held: Boolean) {
+        val running = core ?: return
+        heldButtons = if (held) heldButtons + button else heldButtons - button
+        running.hold(heldButtons)
     }
 
     fun onConsoleTick() {
