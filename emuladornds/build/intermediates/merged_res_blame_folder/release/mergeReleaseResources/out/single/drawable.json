@@ -1,0 +1,42 @@
+[
+    {
+        "merged": "pelkidev.com.mx.emuladornds-release-35:/drawable/ic_call_answer_video.xml",
+        "source": "pelkidev.com.mx.emuladornds-core-1.16.0-4:/drawable/ic_call_answer_video.xml"
+    },
+    {
+        "merged": "pelkidev.com.mx.emuladornds-release-35:/drawable/ic_call_decline.xml",
+        "source": "pelkidev.com.mx.emuladornds-core-1.16.0-4:/drawable/ic_call_decline.xml"
+    },
+    {
+        "merged": "pelkidev.com.mx.emuladornds-release-35:/drawable/ic_call_decline_low.xml",
+        "source": "pelkidev.com.mx.emuladornds-core-1.16.0-4:/drawable/ic_call_decline_low.xml"
+    },
+    {
+        "merged": "pelkidev.com.mx.emuladornds-release-35:/drawable/ic_call_answer.xml",
+        "source": "pelkidev.com.mx.emuladornds-core-1.16.0-4:/drawable/ic_call_answer.xml"
+    },
+    {
+        "merged": "pelkidev.com.mx.emuladornds-release-35:/drawable/notification_tile_bg.xml",
+        "source": "pelkidev.com.mx.emuladornds-core-1.16.0-4:/drawable/notification_tile_bg.xml"
+    },
+    {
+        "merged": "pelkidev.com.mx.emuladornds-release-35:/drawable/notification_bg_low.xml",
+        "source": "pelkidev.com.mx.emuladornds-core-1.16.0-4:/drawable/notification_bg_low.xml"
+    },
+    {
+        "merged": "pelkidev.com.mx.emuladornds-release-35:/drawable/ic_call_answer_video_low.xml",
+        "source": "pelkidev.com.mx.emuladornds-core-1.16.0-4:/drawable/ic_call_answer_video_low.xml"
+    },
+    {
+        "merged": "pelkidev.com.mx.emuladornds-release-35:/drawable/notification_bg.xml",
+        "source": "pelkidev.com.mx.emuladornds-core-1.16.0-4:/drawable/notification_bg.xml"
+    },
+    {
+        "merged": "pelkidev.com.mx.emuladornds-release-35:/drawable/ic_call_answer_low.xml",
+        "source": "pelkidev.com.mx.emuladornds-core-1.16.0-4:/drawable/ic_call_answer_low.xml"
+    },
+    {
+        "merged": "pelkidev.com.mx.emuladornds-release-35:/drawable/notification_icon_background.xml",
+        "source": "pelkidev.com.mx.emuladornds-core-1.16.0-4:/drawable/notification_icon_background.xml"
+    }
+]

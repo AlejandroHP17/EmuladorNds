@@ -1,0 +1,22 @@
+[
+    {
+        "merged": "pelkidev.com.mx.emuladornds-release-35:/layout/notification_template_part_time.xml",
+        "source": "pelkidev.com.mx.emuladornds-core-1.16.0-4:/layout/notification_template_part_time.xml"
+    },
+    {
+        "merged": "pelkidev.com.mx.emuladornds-release-35:/layout/ime_base_split_test_activity.xml",
+        "source": "pelkidev.com.mx.emuladornds-core-1.16.0-4:/layout/ime_base_split_test_activity.xml"
+    },
+    {
+        "merged": "pelkidev.com.mx.emuladornds-release-35:/layout/ime_secondary_split_test_activity.xml",
+        "source": "pelkidev.com.mx.emuladornds-core-1.16.0-4:/layout/ime_secondary_split_test_activity.xml"
+    },
+    {
+        "merged": "pelkidev.com.mx.emuladornds-release-35:/layout/custom_dialog.xml",
+        "source": "pelkidev.com.mx.emuladornds-core-1.16.0-4:/layout/custom_dialog.xml"
+    },
+    {
+        "merged": "pelkidev.com.mx.emuladornds-release-35:/layout/notification_template_part_chronometer.xml",
+        "source": "pelkidev.com.mx.emuladornds-core-1.16.0-4:/layout/notification_template_part_chronometer.xml"
+    }
+]

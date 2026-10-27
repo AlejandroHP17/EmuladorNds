@@ -1,0 +1,10 @@
+[
+    {
+        "merged": "pelkidev.com.mx.emuladornds-release-35:/color/vector_tint_theme_color.xml",
+        "source": "pelkidev.com.mx.emuladornds-ui-8:/color/vector_tint_theme_color.xml"
+    },
+    {
+        "merged": "pelkidev.com.mx.emuladornds-release-35:/color/vector_tint_color.xml",
+        "source": "pelkidev.com.mx.emuladornds-ui-8:/color/vector_tint_color.xml"
+    }
+]
