@@ -24,7 +24,7 @@ data class EmuladorStartUiState(
 )
 
 class EmuladorStartViewModel(
-    private val startCore: (ByteArray) -> NdsCore = ::MelonDsCore,
+    private val startCore: (String) -> NdsCore = ::MelonDsCore,
     private val autoAdvance: Boolean = true,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(EmuladorStartUiState())
@@ -39,12 +39,12 @@ class EmuladorStartViewModel(
     private var core: NdsCore? = null
     private var paceJob: Job? = null
 
-    fun onFileChosen(fileName: String, readBytes: () -> ByteArray?) {
+    fun onFileChosen(fileName: String, prepareRomPath: () -> String?) {
         if (!isNdsFileName(fileName)) {
             _uiState.update { it.copy(showInvalidFileMessage = true) }
             return
         }
-        val rom = readBytes() ?: return
+        val romPath = prepareRomPath() ?: return
         stopCore()
         val pattern = patternFrame()
         _topFrame.value = pattern
@@ -56,7 +56,7 @@ class EmuladorStartViewModel(
             )
         }
         val opened = try {
-            startCore(rom)
+            startCore(romPath)
         } catch (_: RuntimeException) {
             null
         } ?: return

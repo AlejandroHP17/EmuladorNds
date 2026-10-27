@@ -7,10 +7,10 @@ interface NdsCore {
     fun close()
 }
 
-class MelonDsCore(rom: ByteArray) : NdsCore {
+class MelonDsCore(romPath: String) : NdsCore {
     private val topPixels = IntArray(NdsFrame.WIDTH * NdsFrame.HEIGHT)
     private val bottomPixels = IntArray(NdsFrame.WIDTH * NdsFrame.HEIGHT)
-    private var handle: Long = nativeCreate(rom)
+    private var handle: Long = nativeCreate(romPath)
 
     init {
         check(handle != 0L) { "melonDS no pudo cargar el ROM" }
@@ -28,7 +28,7 @@ class MelonDsCore(rom: ByteArray) : NdsCore {
         handle = 0L
     }
 
-    private external fun nativeCreate(rom: ByteArray): Long
+    private external fun nativeCreate(romPath: String): Long
 
     private external fun nativeRunFrame(handle: Long, top: IntArray, bottom: IntArray)
 

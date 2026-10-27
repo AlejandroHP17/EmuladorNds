@@ -1,5 +1,6 @@
 #include <jni.h>
 
+#include <cstdio>
 #include <memory>
 
 #include "Args.h"
@@ -25,31 +26,57 @@ void CopyScreen(JNIEnv* env, jintArray out, const melonDS::u32* src) {
     env->SetIntArrayRegion(out, 0, kPixels, reinterpret_cast<const jint*>(src));
 }
 
+std::unique_ptr<melonDS::u8[]> ReadFileBytes(const char* path, melonDS::u32* outSize) {
+    FILE* file = std::fopen(path, "rb");
+    if (file == nullptr) {
+        return nullptr;
+    }
+    if (std::fseek(file, 0, SEEK_END) != 0) {
+        std::fclose(file);
+        return nullptr;
+    }
+    const long length = std::ftell(file);
+    if (length <= 0) {
+        std::fclose(file);
+        return nullptr;
+    }
+    if (std::fseek(file, 0, SEEK_SET) != 0) {
+        std::fclose(file);
+        return nullptr;
+    }
+    auto bytes = std::make_unique<melonDS::u8[]>(static_cast<size_t>(length));
+    const size_t read = std::fread(bytes.get(), 1, static_cast<size_t>(length), file);
+    std::fclose(file);
+    if (read != static_cast<size_t>(length)) {
+        return nullptr;
+    }
+    *outSize = static_cast<melonDS::u32>(length);
+    return bytes;
+}
+
 }  // namespace
 
 extern "C" JNIEXPORT jlong JNICALL
 Java_pelkidev_com_mx_emuladornds_data_MelonDsCore_nativeCreate(
         JNIEnv* env,
         jobject /* thiz */,
-        jbyteArray rom) {
-    if (rom == nullptr) {
+        jstring romPath) {
+    if (romPath == nullptr) {
         return 0;
     }
-    const jsize size = env->GetArrayLength(rom);
-    if (size <= 0) {
+    const char* path = env->GetStringUTFChars(romPath, nullptr);
+    if (path == nullptr) {
         return 0;
     }
 
-    auto romCopy = std::make_unique<melonDS::u8[]>(static_cast<size_t>(size));
-    env->GetByteArrayRegion(
-            rom,
-            0,
-            size,
-            reinterpret_cast<jbyte*>(romCopy.get()));
+    melonDS::u32 size = 0;
+    auto romCopy = ReadFileBytes(path, &size);
+    env->ReleaseStringUTFChars(romPath, path);
+    if (!romCopy || size == 0) {
+        return 0;
+    }
 
-    auto cart = melonDS::NDSCart::ParseROM(
-            std::move(romCopy),
-            static_cast<melonDS::u32>(size));
+    auto cart = melonDS::NDSCart::ParseROM(std::move(romCopy), size);
     if (!cart) {
         return 0;
     }

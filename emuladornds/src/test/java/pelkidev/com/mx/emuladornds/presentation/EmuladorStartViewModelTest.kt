@@ -21,7 +21,7 @@ class EmuladorStartViewModelTest {
             autoAdvance = false,
         )
 
-        viewModel.onFileChosen("juego.nds") { byteArrayOf(1) }
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
         viewModel.onConsoleTick()
 
         assertEquals(1, cores.size)
@@ -41,7 +41,7 @@ class EmuladorStartViewModelTest {
             autoAdvance = false,
         )
 
-        viewModel.onFileChosen("nota.txt") { byteArrayOf(1) }
+        viewModel.onFileChosen("nota.txt") { "/tmp/nota.txt" }
 
         assertTrue(cores.isEmpty())
         assertNull(viewModel.topFrame.value)
@@ -56,8 +56,8 @@ class EmuladorStartViewModelTest {
             autoAdvance = false,
         )
 
-        viewModel.onFileChosen("uno.nds") { byteArrayOf(1) }
-        viewModel.onFileChosen("dos.nds") { byteArrayOf(2) }
+        viewModel.onFileChosen("uno.nds") { "/tmp/uno.nds" }
+        viewModel.onFileChosen("dos.nds") { "/tmp/dos.nds" }
 
         assertEquals(2, cores.size)
         assertTrue(cores[0].closed)
@@ -81,7 +81,7 @@ class EmuladorStartViewModelTest {
             },
         )[EmuladorStartViewModel::class.java]
 
-        viewModel.onFileChosen("juego.nds") { byteArrayOf(1) }
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
         store.clear()
 
         assertTrue(cores.single().closed)

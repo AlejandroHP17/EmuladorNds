@@ -21,6 +21,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import java.io.File
 
 @Composable
 fun EmuladorStartScreen(
@@ -39,7 +40,7 @@ fun EmuladorStartScreen(
         if (uri == null) return@rememberLauncherForActivityResult
         val name = displayName(context, uri)
         viewModel.onFileChosen(name) {
-            context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
+            copyRomToCache(context, uri)
         }
     }
 
@@ -92,6 +93,20 @@ fun EmuladorStartScreen(
                     .padding(top = 16.dp),
             )
         }
+    }
+}
+
+private fun copyRomToCache(context: Context, uri: Uri): String? {
+    val dest = File(context.cacheDir, "session.nds")
+    return try {
+        context.contentResolver.openInputStream(uri)?.use { input ->
+            dest.outputStream().use { output ->
+                input.copyTo(output, bufferSize = 64 * 1024)
+            }
+        } ?: return null
+        dest.absolutePath
+    } catch (_: Exception) {
+        null
     }
 }
 
