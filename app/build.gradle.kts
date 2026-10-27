@@ -4,7 +4,7 @@ plugins {
 }
 
 android {
-    namespace = "pelkidev.com.mx.emuladornds"
+    namespace = "pelkidev.com.mx.emuladornds.app"
     compileSdk {
         version = release(37)
     }
@@ -37,6 +37,8 @@ android {
 }
 
 dependencies {
+    implementation(project(":emuladornds"))
+
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.material3)
