@@ -5,8 +5,25 @@ import android.media.AudioFormat
 import android.media.AudioTrack
 import pelkidev.com.mx.emuladornds.domain.NdsFrame
 
+/** Orden de bits de melonDS 1.0: A, B, Select, Start, Right, Left, Up, Down, R, L, X, Y. */
+enum class NdsButton {
+    A,
+    B,
+    SELECT,
+    START,
+    RIGHT,
+    LEFT,
+    UP,
+    DOWN,
+    R,
+    L,
+    X,
+    Y,
+}
+
 interface NdsCore {
     fun step(): Pair<NdsFrame, NdsFrame>
+    fun hold(buttons: Set<NdsButton>) {}
     fun close()
 
     /** Si es true, `step()` ya espera al audio y el ViewModel no añade otra pausa. */
@@ -21,6 +38,9 @@ class MelonDsCore(romPath: String) : NdsCore {
     private var track = openTrack()
     private var produced = 0
 
+    @Volatile
+    private var keys = KEYS_RELEASED
+
     override val audioPaced: Boolean
         get() = track != null
 
@@ -28,9 +48,17 @@ class MelonDsCore(romPath: String) : NdsCore {
         check(handle != 0L) { "melonDS no pudo cargar el ROM" }
     }
 
+    override fun hold(buttons: Set<NdsButton>) {
+        var mask = KEYS_RELEASED
+        for (button in buttons) {
+            mask = mask and (1 shl button.ordinal).inv()
+        }
+        keys = mask and KEYS_RELEASED
+    }
+
     override fun step(): Pair<NdsFrame, NdsFrame> {
         check(handle != 0L) { "melonDS ya está cerrado" }
-        produced = nativeRunFrame(handle, topPixels, bottomPixels, pcm)
+        produced = nativeRunFrame(handle, topPixels, bottomPixels, keys, pcm)
         playProduced()
         return NdsFrame(topPixels) to NdsFrame(bottomPixels)
     }
@@ -60,6 +88,7 @@ class MelonDsCore(romPath: String) : NdsCore {
         handle: Long,
         top: IntArray,
         bottom: IntArray,
+        keys: Int,
         audioOut: ShortArray,
     ): Int
 
@@ -69,6 +98,8 @@ class MelonDsCore(romPath: String) : NdsCore {
         const val AUDIO_BUFFER_SAMPLES = 1608
         const val SAMPLE_RATE = 48000
         const val BYTES_PER_STEREO_FRAME = 4
+        /** 12 bits a 1 = ningún control pulsado (SetKeyMask active-low). */
+        const val KEYS_RELEASED = 0xFFF
 
         init {
             System.loadLibrary("emuladornds_melonds")

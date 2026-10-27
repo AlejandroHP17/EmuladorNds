@@ -139,6 +139,7 @@ Java_pelkidev_com_mx_emuladornds_data_MelonDsCore_nativeRunFrame(
         jlong handle,
         jintArray top,
         jintArray bottom,
+        jint keys,
         jshortArray audioOut) {
     auto* machine = reinterpret_cast<Machine*>(handle);
     if (machine == nullptr || machine->nds == nullptr) {
@@ -146,6 +147,8 @@ Java_pelkidev_com_mx_emuladornds_data_MelonDsCore_nativeRunFrame(
     }
 
     melonDS::NDS& nds = *machine->nds;
+    // Active-low mask (bit cleared = pressed), bits 0–11 = A…Y as in melonDS input.
+    nds.SetKeyMask(static_cast<melonDS::u32>(keys) & 0xFFFu);
     nds.RunFrame();
 
     int available = nds.SPU.GetOutputSize();
