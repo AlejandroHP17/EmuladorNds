@@ -64,6 +64,7 @@ class EmuladorStartViewModel(
             null
         } ?: return
         opened.hold(emptySet())
+        opened.releaseTouch()
         core = opened
         if (autoAdvance) {
             startPace()
@@ -74,6 +75,19 @@ class EmuladorStartViewModel(
         val running = core ?: return
         heldButtons = if (held) heldButtons + button else heldButtons - button
         running.hold(heldButtons)
+    }
+
+    /** Punto en coordenadas DS (256×192) mientras el dedo está en la pantalla de abajo. */
+    fun onStylusMoved(x: Int, y: Int) {
+        val running = core ?: return
+        running.touch(
+            x.coerceIn(0, NdsFrame.WIDTH - 1),
+            y.coerceIn(0, NdsFrame.HEIGHT - 1),
+        )
+    }
+
+    fun onStylusReleased() {
+        core?.releaseTouch()
     }
 
     fun onConsoleTick() {
