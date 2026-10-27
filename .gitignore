@@ -27,13 +27,20 @@ local.properties
 *.aab
 *.aar
 *.log
+*.mp4
+*.jks
+*.keystore
 
 # ROMs, BIOS y partidas: nunca en el repo
 *.nds
 *.NDS
+*.srl
+*.SRL
 *.sav
 *.dsi
 *.DSI
+*.dst
+*.ml[0-9]
 bios*.bin
 *firmware*.bin
 

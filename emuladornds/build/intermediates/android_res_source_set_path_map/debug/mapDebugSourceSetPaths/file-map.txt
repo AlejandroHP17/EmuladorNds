@@ -1,9 +1,0 @@
-pelkidev.com.mx.emuladornds-pngs-0 /Users/ahernandezpel/StudioProjects/AllInOne/EmuladorNds/emuladornds/build/generated/res/pngs/debug
-pelkidev.com.mx.emuladornds-updated_navigation_xml-1 /Users/ahernandezpel/StudioProjects/AllInOne/EmuladorNds/emuladornds/build/generated/updated_navigation_xml/debug
-pelkidev.com.mx.emuladornds-mergeDebugResources-2 /Users/ahernandezpel/StudioProjects/AllInOne/EmuladorNds/emuladornds/build/intermediates/incremental/debug/mergeDebugResources/merged.dir
-pelkidev.com.mx.emuladornds-mergeDebugResources-3 /Users/ahernandezpel/StudioProjects/AllInOne/EmuladorNds/emuladornds/build/intermediates/incremental/debug/mergeDebugResources/stripped.dir
-pelkidev.com.mx.emuladornds-debug-4 /Users/ahernandezpel/StudioProjects/AllInOne/EmuladorNds/emuladornds/build/intermediates/merged_res/debug/mergeDebugResources
-pelkidev.com.mx.emuladornds-debug-5 /Users/ahernandezpel/StudioProjects/AllInOne/EmuladorNds/emuladornds/build/intermediates/packaged_res/debug/packageDebugResources
-pelkidev.com.mx.emuladornds-debug-6 /Users/ahernandezpel/StudioProjects/AllInOne/EmuladorNds/emuladornds/src/debug/res
-pelkidev.com.mx.emuladornds-main-7 /Users/ahernandezpel/StudioProjects/AllInOne/EmuladorNds/emuladornds/src/main/res
-gradleHome-0 /Users/ahernandezpel/.gradle
