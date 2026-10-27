@@ -79,6 +79,10 @@ class EmuladorStartViewModel(
             var deadline = System.nanoTime()
             while (isActive) {
                 onConsoleTick()
+                if (core?.audioPaced == true) {
+                    deadline = System.nanoTime()
+                    continue
+                }
                 deadline += NdsPace.NANOS_PER_STEP
                 val wait = deadline - System.nanoTime()
                 if (wait > 0) {

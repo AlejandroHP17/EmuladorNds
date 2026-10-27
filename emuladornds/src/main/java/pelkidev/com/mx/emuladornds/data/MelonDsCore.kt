@@ -8,6 +8,9 @@ import pelkidev.com.mx.emuladornds.domain.NdsFrame
 interface NdsCore {
     fun step(): Pair<NdsFrame, NdsFrame>
     fun close()
+
+    /** Si es true, `step()` ya espera al audio y el ViewModel no añade otra pausa. */
+    val audioPaced: Boolean get() = false
 }
 
 class MelonDsCore(romPath: String) : NdsCore {
@@ -17,6 +20,9 @@ class MelonDsCore(romPath: String) : NdsCore {
     private var handle: Long = nativeCreate(romPath)
     private var track = openTrack()
     private var produced = 0
+
+    override val audioPaced: Boolean
+        get() = track != null
 
     init {
         check(handle != 0L) { "melonDS no pudo cargar el ROM" }
