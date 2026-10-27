@@ -16,20 +16,14 @@ class EmuladorStartViewModel : ViewModel() {
     private val _uiState = MutableStateFlow(EmuladorStartUiState())
     val uiState: StateFlow<EmuladorStartUiState> = _uiState.asStateFlow()
 
-    var loadedRom: ByteArray? = null
-        private set
-
-    fun onFileChosen(fileName: String, readBytes: () -> ByteArray?) {
+    fun onFileChosen(fileName: String) {
         if (!isNdsFileName(fileName)) {
             _uiState.update { it.copy(showInvalidFileMessage = true) }
             return
         }
-        val bytes = readBytes() ?: return
-        val trimmed = fileName.trim()
-        loadedRom = bytes
         _uiState.update {
             it.copy(
-                loadedFileName = trimmed,
+                loadedFileName = fileName.trim(),
                 showInvalidFileMessage = false,
             )
         }

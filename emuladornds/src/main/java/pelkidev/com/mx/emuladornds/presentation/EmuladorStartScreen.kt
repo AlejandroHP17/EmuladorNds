@@ -35,9 +35,7 @@ fun EmuladorStartScreen(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
-        viewModel.onFileChosen(displayName(context, uri)) {
-            context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-        }
+        viewModel.onFileChosen(displayName(context, uri))
     }
 
     Column(
