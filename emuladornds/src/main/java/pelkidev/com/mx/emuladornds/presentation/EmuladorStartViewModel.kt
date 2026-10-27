@@ -11,6 +11,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import pelkidev.com.mx.emuladornds.data.MelonDsCore
+import pelkidev.com.mx.emuladornds.data.NdsCore
 import pelkidev.com.mx.emuladornds.domain.NdsFrame
 import pelkidev.com.mx.emuladornds.domain.NdsPace
 import pelkidev.com.mx.emuladornds.domain.isNdsFileName
@@ -21,7 +23,10 @@ data class EmuladorStartUiState(
     val showInvalidFileMessage: Boolean = false,
 )
 
-class EmuladorStartViewModel : ViewModel() {
+class EmuladorStartViewModel(
+    private val startCore: (ByteArray) -> NdsCore = ::MelonDsCore,
+    private val autoAdvance: Boolean = true,
+) : ViewModel() {
     private val _uiState = MutableStateFlow(EmuladorStartUiState())
     val uiState: StateFlow<EmuladorStartUiState> = _uiState.asStateFlow()
 
@@ -31,13 +36,16 @@ class EmuladorStartViewModel : ViewModel() {
     private val _bottomFrame = MutableStateFlow<NdsFrame?>(null)
     val bottomFrame: StateFlow<NdsFrame?> = _bottomFrame.asStateFlow()
 
+    private var core: NdsCore? = null
     private var paceJob: Job? = null
 
-    fun onFileChosen(fileName: String) {
+    fun onFileChosen(fileName: String, readBytes: () -> ByteArray?) {
         if (!isNdsFileName(fileName)) {
             _uiState.update { it.copy(showInvalidFileMessage = true) }
             return
         }
+        val rom = readBytes() ?: return
+        stopCore()
         val pattern = patternFrame()
         _topFrame.value = pattern
         _bottomFrame.value = pattern
@@ -47,18 +55,30 @@ class EmuladorStartViewModel : ViewModel() {
                 showInvalidFileMessage = false,
             )
         }
-        startPace()
+        val opened = try {
+            startCore(rom)
+        } catch (_: RuntimeException) {
+            null
+        } ?: return
+        core = opened
+        if (autoAdvance) {
+            startPace()
+        }
+    }
+
+    fun onConsoleTick() {
+        val running = core ?: return
+        val (top, bottom) = running.step()
+        _topFrame.value = top
+        _bottomFrame.value = bottom
     }
 
     private fun startPace() {
         paceJob?.cancel()
-        val pace = NdsPace()
         paceJob = viewModelScope.launch(Dispatchers.Default) {
             var deadline = System.nanoTime()
             while (isActive) {
-                val moment = pace.step(loaded = true) ?: break
-                _topFrame.value = moment.top
-                _bottomFrame.value = moment.bottom
+                onConsoleTick()
                 deadline += NdsPace.NANOS_PER_STEP
                 val wait = deadline - System.nanoTime()
                 if (wait > 0) {
@@ -68,5 +88,17 @@ class EmuladorStartViewModel : ViewModel() {
                 }
             }
         }
+    }
+
+    private fun stopCore() {
+        paceJob?.cancel()
+        paceJob = null
+        core?.close()
+        core = null
+    }
+
+    override fun onCleared() {
+        stopCore()
+        super.onCleared()
     }
 }
