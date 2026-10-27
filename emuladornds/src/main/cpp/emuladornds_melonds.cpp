@@ -140,6 +140,9 @@ Java_pelkidev_com_mx_emuladornds_data_MelonDsCore_nativeRunFrame(
         jintArray top,
         jintArray bottom,
         jint keys,
+        jboolean touching,
+        jint touchX,
+        jint touchY,
         jshortArray audioOut) {
     auto* machine = reinterpret_cast<Machine*>(handle);
     if (machine == nullptr || machine->nds == nullptr) {
@@ -149,6 +152,15 @@ Java_pelkidev_com_mx_emuladornds_data_MelonDsCore_nativeRunFrame(
     melonDS::NDS& nds = *machine->nds;
     // Active-low mask (bit cleared = pressed), bits 0–11 = A…Y as in melonDS input.
     nds.SetKeyMask(static_cast<melonDS::u32>(keys) & 0xFFFu);
+    if (touching) {
+        const melonDS::u16 x = static_cast<melonDS::u16>(
+                std::max(0, std::min(255, static_cast<int>(touchX))));
+        const melonDS::u16 y = static_cast<melonDS::u16>(
+                std::max(0, std::min(191, static_cast<int>(touchY))));
+        nds.TouchScreen(x, y);
+    } else {
+        nds.ReleaseScreen();
+    }
     nds.RunFrame();
 
     int available = nds.SPU.GetOutputSize();

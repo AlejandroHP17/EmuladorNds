@@ -24,6 +24,8 @@ enum class NdsButton {
 interface NdsCore {
     fun step(): Pair<NdsFrame, NdsFrame>
     fun hold(buttons: Set<NdsButton>) {}
+    fun touch(x: Int, y: Int) {}
+    fun releaseTouch() {}
     fun close()
 
     /** Si es true, `step()` ya espera al audio y el ViewModel no añade otra pausa. */
@@ -41,6 +43,15 @@ class MelonDsCore(romPath: String) : NdsCore {
     @Volatile
     private var keys = KEYS_RELEASED
 
+    @Volatile
+    private var touching = false
+
+    @Volatile
+    private var touchX = 0
+
+    @Volatile
+    private var touchY = 0
+
     override val audioPaced: Boolean
         get() = track != null
 
@@ -56,9 +67,28 @@ class MelonDsCore(romPath: String) : NdsCore {
         keys = mask and KEYS_RELEASED
     }
 
+    override fun touch(x: Int, y: Int) {
+        touchX = x.coerceIn(0, NdsFrame.WIDTH - 1)
+        touchY = y.coerceIn(0, NdsFrame.HEIGHT - 1)
+        touching = true
+    }
+
+    override fun releaseTouch() {
+        touching = false
+    }
+
     override fun step(): Pair<NdsFrame, NdsFrame> {
         check(handle != 0L) { "melonDS ya está cerrado" }
-        produced = nativeRunFrame(handle, topPixels, bottomPixels, keys, pcm)
+        produced = nativeRunFrame(
+            handle,
+            topPixels,
+            bottomPixels,
+            keys,
+            touching,
+            touchX,
+            touchY,
+            pcm,
+        )
         playProduced()
         return NdsFrame(topPixels) to NdsFrame(bottomPixels)
     }
@@ -89,6 +119,9 @@ class MelonDsCore(romPath: String) : NdsCore {
         top: IntArray,
         bottom: IntArray,
         keys: Int,
+        touching: Boolean,
+        touchX: Int,
+        touchY: Int,
         audioOut: ShortArray,
     ): Int
 
