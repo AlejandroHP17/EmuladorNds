@@ -22,6 +22,7 @@ import pelkidev.com.mx.emuladornds.domain.patternFrame
 data class EmuladorStartUiState(
     val loadedFileName: String? = null,
     val showInvalidFileMessage: Boolean = false,
+    val menuOpen: Boolean = false,
 )
 
 class EmuladorStartViewModel(
@@ -56,6 +57,7 @@ class EmuladorStartViewModel(
             it.copy(
                 loadedFileName = fileName.trim(),
                 showInvalidFileMessage = false,
+                menuOpen = false,
             )
         }
         val opened = try {
@@ -69,6 +71,11 @@ class EmuladorStartViewModel(
         if (autoAdvance) {
             startPace()
         }
+    }
+
+    fun onMenuToggled() {
+        if (_uiState.value.loadedFileName == null) return
+        _uiState.update { it.copy(menuOpen = !it.menuOpen) }
     }
 
     fun onControlChanged(button: NdsButton, held: Boolean) {

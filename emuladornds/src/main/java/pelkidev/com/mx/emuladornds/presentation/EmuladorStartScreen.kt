@@ -100,12 +100,38 @@ fun EmuladorStartScreen(
                 )
             }
         } else {
-            Text(
-                text = uiState.loadedFileName.orEmpty(),
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 8.dp),
-            )
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = uiState.loadedFileName.orEmpty(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    modifier = Modifier.weight(1f),
+                )
+                Button(onClick = viewModel::onMenuToggled) {
+                    Text(text = "Menú")
+                }
+            }
+            if (uiState.menuOpen) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .padding(12.dp),
+                ) {
+                    Text(
+                        text = "Partida",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
             if (uiState.showInvalidFileMessage) {
                 Text(
                     text = "Elige un archivo .nds",

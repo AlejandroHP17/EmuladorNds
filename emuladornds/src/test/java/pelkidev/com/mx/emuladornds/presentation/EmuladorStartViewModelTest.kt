@@ -120,6 +120,38 @@ class EmuladorStartViewModelTest {
     }
 
     @Test
+    fun menu_startsClosed_togglesAndResetsOnNewRom() {
+        val viewModel = EmuladorStartViewModel(
+            startCore = { FakeCore() },
+            autoAdvance = false,
+        )
+
+        assertFalse(viewModel.uiState.value.menuOpen)
+
+        viewModel.onFileChosen("uno.nds") { "/tmp/uno.nds" }
+        assertFalse(viewModel.uiState.value.menuOpen)
+
+        viewModel.onMenuToggled()
+        assertTrue(viewModel.uiState.value.menuOpen)
+
+        viewModel.onMenuToggled()
+        assertFalse(viewModel.uiState.value.menuOpen)
+
+        viewModel.onMenuToggled()
+        viewModel.onFileChosen("dos.nds") { "/tmp/dos.nds" }
+        assertFalse(viewModel.uiState.value.menuOpen)
+    }
+
+    @Test
+    fun menuToggle_ignoredWithoutLoadedRom() {
+        val viewModel = EmuladorStartViewModel(autoAdvance = false)
+
+        viewModel.onMenuToggled()
+
+        assertFalse(viewModel.uiState.value.menuOpen)
+    }
+
+    @Test
     fun newRom_startsWithEmptyHold() {
         val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
