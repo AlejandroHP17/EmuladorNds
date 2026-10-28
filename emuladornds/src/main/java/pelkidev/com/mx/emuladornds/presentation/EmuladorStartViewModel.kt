@@ -41,6 +41,7 @@ class EmuladorStartViewModel(
     private val _bottomFrame = MutableStateFlow<NdsFrame?>(null)
     val bottomFrame: StateFlow<NdsFrame?> = _bottomFrame.asStateFlow()
 
+    private val coreLock = Any()
     private var core: NdsCore? = null
     private var paceJob: Job? = null
     private var heldButtons = emptySet<NdsButton>()
@@ -69,9 +70,11 @@ class EmuladorStartViewModel(
         } catch (_: RuntimeException) {
             null
         } ?: return
-        opened.hold(emptySet())
-        opened.releaseTouch()
-        core = opened
+        synchronized(coreLock) {
+            opened.hold(emptySet())
+            opened.releaseTouch()
+            core = opened
+        }
         if (autoAdvance) {
             startPace()
         }
@@ -90,8 +93,9 @@ class EmuladorStartViewModel(
     fun onSaveState() {
         val name = _uiState.value.loadedFileName ?: return
         val directory = stateDirectory ?: return
-        val running = core ?: return
-        val bytes = running.exportState()
+        val bytes = synchronized(coreLock) {
+            core?.exportState()
+        } ?: return
         if (bytes.isEmpty()) return
         directory.mkdirs()
         stateFile(directory, name, _uiState.value.selectedSlot).writeBytes(bytes)
@@ -102,37 +106,45 @@ class EmuladorStartViewModel(
         val directory = stateDirectory ?: return
         val file = stateFile(directory, name, _uiState.value.selectedSlot)
         if (!file.isFile) return
-        val running = core ?: return
-        if (!running.importState(file.readBytes())) return
-        val (top, bottom) = running.step()
-        _topFrame.value = top
-        _bottomFrame.value = bottom
+        val payload = file.readBytes()
+        val frames = synchronized(coreLock) {
+            val running = core ?: return
+            if (!running.importState(payload)) return
+            running.step()
+        }
+        _topFrame.value = frames.first
+        _bottomFrame.value = frames.second
     }
 
     fun onControlChanged(button: NdsButton, held: Boolean) {
-        val running = core ?: return
         heldButtons = if (held) heldButtons + button else heldButtons - button
-        running.hold(heldButtons)
+        synchronized(coreLock) {
+            core?.hold(heldButtons)
+        }
     }
 
     /** Punto en coordenadas DS (256×192) mientras el dedo está en la pantalla de abajo. */
     fun onStylusMoved(x: Int, y: Int) {
-        val running = core ?: return
-        running.touch(
-            x.coerceIn(0, NdsFrame.WIDTH - 1),
-            y.coerceIn(0, NdsFrame.HEIGHT - 1),
-        )
+        synchronized(coreLock) {
+            core?.touch(
+                x.coerceIn(0, NdsFrame.WIDTH - 1),
+                y.coerceIn(0, NdsFrame.HEIGHT - 1),
+            )
+        }
     }
 
     fun onStylusReleased() {
-        core?.releaseTouch()
+        synchronized(coreLock) {
+            core?.releaseTouch()
+        }
     }
 
     fun onConsoleTick() {
-        val running = core ?: return
-        val (top, bottom) = running.step()
-        _topFrame.value = top
-        _bottomFrame.value = bottom
+        val frames = synchronized(coreLock) {
+            core?.step()
+        } ?: return
+        _topFrame.value = frames.first
+        _bottomFrame.value = frames.second
     }
 
     private fun startPace() {
@@ -159,8 +171,10 @@ class EmuladorStartViewModel(
     private fun stopCore() {
         paceJob?.cancel()
         paceJob = null
-        core?.close()
-        core = null
+        synchronized(coreLock) {
+            core?.close()
+            core = null
+        }
     }
 
     override fun onCleared() {
