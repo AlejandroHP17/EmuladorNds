@@ -91,29 +91,35 @@ fun EmuladorStartScreen(
         modifier = modifier
             .fillMaxSize()
             .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(horizontal = 16.dp),
+            .navigationBarsPadding(),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         if (uiState.loadedFileName == null) {
-            Text(
-                text = "Emulador Nintendo DS",
-                style = MaterialTheme.typography.headlineMedium,
-                textAlign = TextAlign.Center,
-            )
-            Button(
-                onClick = { pickNdsFile.launch(arrayOf("*/*")) },
-                modifier = Modifier.padding(top = 8.dp),
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(text = "Elegir .nds")
-            }
-            if (uiState.showInvalidFileMessage) {
                 Text(
-                    text = "Elige un archivo .nds",
-                    style = MaterialTheme.typography.bodyLarge,
+                    text = "Emulador Nintendo DS",
+                    style = MaterialTheme.typography.headlineMedium,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 16.dp),
                 )
+                Button(
+                    onClick = { pickNdsFile.launch(arrayOf("*/*")) },
+                    modifier = Modifier.padding(top = 8.dp),
+                ) {
+                    Text(text = "Elegir .nds")
+                }
+                if (uiState.showInvalidFileMessage) {
+                    Text(
+                        text = "Elige un archivo .nds",
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(top = 16.dp),
+                    )
+                }
             }
         } else {
             Box(
@@ -125,7 +131,7 @@ fun EmuladorStartScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -142,7 +148,7 @@ fun EmuladorStartScreen(
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp)
+                        .padding(horizontal = 16.dp)
                         .clip(RoundedCornerShape(12.dp))
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                         .padding(12.dp),
@@ -209,7 +215,7 @@ fun EmuladorStartScreen(
                     text = "Elige un archivo .nds",
                     style = MaterialTheme.typography.bodyLarge,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(top = 8.dp),
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 )
             }
             NdsScreens(
@@ -225,7 +231,7 @@ fun EmuladorStartScreen(
                 onChanged = viewModel::onControlChanged,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp),
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
             )
                 }
                 if (uiState.replaceAsk != null) {
