@@ -53,10 +53,20 @@ import java.io.File
 import pelkidev.com.mx.emuladornds.data.NdsButton
 
 @Composable
+private fun rememberEmuladorStartViewModel(): EmuladorStartViewModel {
+    val context = LocalContext.current
+    return viewModel {
+        EmuladorStartViewModel(
+            stateDirectory = File(context.applicationContext.filesDir, "emuladornds-states"),
+        )
+    }
+}
+
+@Composable
 fun EmuladorStartScreen(
     onExit: () -> Unit,
     modifier: Modifier = Modifier,
-    viewModel: EmuladorStartViewModel = viewModel { EmuladorStartViewModel() },
+    viewModel: EmuladorStartViewModel = rememberEmuladorStartViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val topFrame by viewModel.topFrame.collectAsStateWithLifecycle()
@@ -130,6 +140,42 @@ fun EmuladorStartScreen(
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
                     )
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        for (slot in 1..3) {
+                            val selected = uiState.selectedSlot == slot
+                            Button(
+                                onClick = { viewModel.onSlotSelected(slot) },
+                                modifier = Modifier.weight(1f),
+                                enabled = !selected,
+                            ) {
+                                Text(text = slot.toString())
+                            }
+                        }
+                    }
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Button(
+                            onClick = viewModel::onSaveState,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(text = "Guardar")
+                        }
+                        Button(
+                            onClick = viewModel::onLoadState,
+                            modifier = Modifier.weight(1f),
+                        ) {
+                            Text(text = "Cargar")
+                        }
+                    }
                 }
             }
             if (uiState.showInvalidFileMessage) {

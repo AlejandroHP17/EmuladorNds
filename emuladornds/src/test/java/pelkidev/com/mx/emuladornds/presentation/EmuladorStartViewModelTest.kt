@@ -3,6 +3,9 @@ package pelkidev.com.mx.emuladornds.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
+import java.io.File
+import kotlin.io.path.createTempDirectory
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -152,6 +155,87 @@ class EmuladorStartViewModelTest {
     }
 
     @Test
+    fun slots_keepSeparateStatesAndReplaceOnlyTheChosenOne() {
+        val directory = createTempDirectory("nds-state").toFile()
+        val cores = mutableListOf<RememberingCore>()
+        val viewModel = viewModelWithStates(directory, cores)
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+        assertEquals(1, viewModel.uiState.value.selectedSlot)
+        cores[0].token = 9
+        viewModel.onSaveState()
+        viewModel.onSlotSelected(2)
+        cores[0].token = 4
+        viewModel.onSaveState()
+        cores[0].token = 7
+        viewModel.onSaveState()
+
+        assertArrayEquals(byteArrayOf(9), File(directory, "juego.nds").readBytes())
+        assertArrayEquals(byteArrayOf(7), File(directory, "juego.nds.2").readBytes())
+
+        viewModel.onSlotSelected(1)
+        viewModel.onLoadState()
+
+        assertArrayEquals(byteArrayOf(9), cores[0].imported)
+        assertEquals(9, viewModel.topFrame.value!!.pixel(0, 0))
+        assertArrayEquals(byteArrayOf(7), File(directory, "juego.nds.2").readBytes())
+    }
+
+    @Test
+    fun load_emptySlot_keepsTheFrame() {
+        val directory = createTempDirectory("nds-state").toFile()
+        val cores = mutableListOf<RememberingCore>()
+        val viewModel = viewModelWithStates(directory, cores)
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+        cores[0].token = 9
+        viewModel.onSaveState()
+        val top = viewModel.topFrame.value
+
+        viewModel.onSlotSelected(3)
+        viewModel.onLoadState()
+
+        assertTrue(viewModel.topFrame.value === top)
+        assertNull(cores[0].imported)
+    }
+
+    @Test
+    fun load_doesNotApplyAnotherFilesSlot() {
+        val directory = createTempDirectory("nds-state").toFile()
+        val cores = mutableListOf<RememberingCore>()
+        val viewModel = viewModelWithStates(directory, cores)
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+        viewModel.onSlotSelected(2)
+        cores[0].token = 7
+        viewModel.onSaveState()
+
+        viewModel.onFileChosen("otro.nds") { "/tmp/otro.nds" }
+        assertEquals(1, viewModel.uiState.value.selectedSlot)
+        viewModel.onSlotSelected(2)
+        val top = viewModel.topFrame.value
+        viewModel.onLoadState()
+
+        assertTrue(viewModel.topFrame.value === top)
+        assertNull(cores[1].imported)
+    }
+
+    @Test
+    fun reopenedEmulator_loadsTheStateOfTheSameFile() {
+        val directory = createTempDirectory("nds-state").toFile()
+        val firstCores = mutableListOf<RememberingCore>()
+        val first = viewModelWithStates(directory, firstCores)
+        first.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+        firstCores[0].token = 6
+        first.onSaveState()
+
+        val secondCores = mutableListOf<RememberingCore>()
+        val second = viewModelWithStates(directory, secondCores)
+        second.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+        second.onLoadState()
+
+        assertArrayEquals(byteArrayOf(6), secondCores[0].imported)
+        assertEquals(6, second.topFrame.value!!.pixel(0, 0))
+    }
+
+    @Test
     fun newRom_startsWithEmptyHold() {
         val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
@@ -164,6 +248,41 @@ class EmuladorStartViewModelTest {
         viewModel.onFileChosen("dos.nds") { "/tmp/dos.nds" }
 
         assertEquals(emptySet<NdsButton>(), cores[1].held)
+    }
+
+    private fun viewModelWithStates(
+        directory: File,
+        cores: MutableList<RememberingCore>,
+    ): EmuladorStartViewModel =
+        EmuladorStartViewModel(
+            startCore = { RememberingCore().also(cores::add) },
+            autoAdvance = false,
+            stateDirectory = directory,
+        )
+
+    private class RememberingCore : NdsCore {
+        var token: Byte = 1
+        var imported: ByteArray? = null
+            private set
+        private var shown: Byte = 1
+
+        override fun step(): Pair<NdsFrame, NdsFrame> {
+            val pixels = IntArray(NdsFrame.WIDTH * NdsFrame.HEIGHT)
+            pixels[0] = shown.toInt() and 0xFF
+            val frame = NdsFrame(pixels)
+            return frame to NdsFrame(pixels)
+        }
+
+        override fun exportState(): ByteArray = byteArrayOf(token)
+
+        override fun importState(state: ByteArray): Boolean {
+            if (state.isEmpty()) return false
+            imported = state.copyOf()
+            shown = state[0]
+            return true
+        }
+
+        override fun close() = Unit
     }
 
     private class FakeCore : NdsCore {

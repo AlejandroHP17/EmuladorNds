@@ -28,6 +28,10 @@ interface NdsCore {
     fun releaseTouch() {}
     fun close()
 
+    fun exportState(): ByteArray = byteArrayOf()
+
+    fun importState(state: ByteArray): Boolean = false
+
     /** Si es true, `step()` ya espera al audio y el ViewModel no añade otra pausa. */
     val audioPaced: Boolean get() = false
 }
@@ -100,6 +104,16 @@ class MelonDsCore(romPath: String) : NdsCore {
         track.write(pcm, 0, produced * 2, AudioTrack.WRITE_BLOCKING)
     }
 
+    override fun exportState(): ByteArray {
+        if (handle == 0L) return byteArrayOf()
+        return nativeExportState(handle) ?: byteArrayOf()
+    }
+
+    override fun importState(state: ByteArray): Boolean {
+        if (handle == 0L || state.isEmpty()) return false
+        return nativeImportState(handle, state)
+    }
+
     override fun close() {
         track?.let { playing ->
             if (playing.playState == AudioTrack.PLAYSTATE_PLAYING) playing.pause()
@@ -124,6 +138,10 @@ class MelonDsCore(romPath: String) : NdsCore {
         touchY: Int,
         audioOut: ShortArray,
     ): Int
+
+    private external fun nativeExportState(handle: Long): ByteArray?
+
+    private external fun nativeImportState(handle: Long, state: ByteArray): Boolean
 
     private external fun nativeDestroy(handle: Long)
 

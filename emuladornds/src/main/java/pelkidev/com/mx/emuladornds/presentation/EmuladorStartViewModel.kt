@@ -18,16 +18,19 @@ import pelkidev.com.mx.emuladornds.domain.NdsFrame
 import pelkidev.com.mx.emuladornds.domain.NdsPace
 import pelkidev.com.mx.emuladornds.domain.isNdsFileName
 import pelkidev.com.mx.emuladornds.domain.patternFrame
+import java.io.File
 
 data class EmuladorStartUiState(
     val loadedFileName: String? = null,
     val showInvalidFileMessage: Boolean = false,
     val menuOpen: Boolean = false,
+    val selectedSlot: Int = 1,
 )
 
 class EmuladorStartViewModel(
     private val startCore: (String) -> NdsCore = ::MelonDsCore,
     private val autoAdvance: Boolean = true,
+    private val stateDirectory: File? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(EmuladorStartUiState())
     val uiState: StateFlow<EmuladorStartUiState> = _uiState.asStateFlow()
@@ -58,6 +61,7 @@ class EmuladorStartViewModel(
                 loadedFileName = fileName.trim(),
                 showInvalidFileMessage = false,
                 menuOpen = false,
+                selectedSlot = 1,
             )
         }
         val opened = try {
@@ -76,6 +80,33 @@ class EmuladorStartViewModel(
     fun onMenuToggled() {
         if (_uiState.value.loadedFileName == null) return
         _uiState.update { it.copy(menuOpen = !it.menuOpen) }
+    }
+
+    fun onSlotSelected(slot: Int) {
+        if (slot !in 1..3) return
+        _uiState.update { it.copy(selectedSlot = slot) }
+    }
+
+    fun onSaveState() {
+        val name = _uiState.value.loadedFileName ?: return
+        val directory = stateDirectory ?: return
+        val running = core ?: return
+        val bytes = running.exportState()
+        if (bytes.isEmpty()) return
+        directory.mkdirs()
+        stateFile(directory, name, _uiState.value.selectedSlot).writeBytes(bytes)
+    }
+
+    fun onLoadState() {
+        val name = _uiState.value.loadedFileName ?: return
+        val directory = stateDirectory ?: return
+        val file = stateFile(directory, name, _uiState.value.selectedSlot)
+        if (!file.isFile) return
+        val running = core ?: return
+        if (!running.importState(file.readBytes())) return
+        val (top, bottom) = running.step()
+        _topFrame.value = top
+        _bottomFrame.value = bottom
     }
 
     fun onControlChanged(button: NdsButton, held: Boolean) {
@@ -135,5 +166,13 @@ class EmuladorStartViewModel(
     override fun onCleared() {
         stopCore()
         super.onCleared()
+    }
+
+    private companion object {
+        fun stateFile(directory: File, name: String, slot: Int = 1): File {
+            val safe = name.replace("/", "_").replace("\\", "_")
+            val fileName = if (slot == 1) safe else "$safe.$slot"
+            return File(directory, fileName)
+        }
     }
 }

@@ -8,6 +8,7 @@
 #include "Args.h"
 #include "NDS.h"
 #include "NDSCart.h"
+#include "Savestate.h"
 #include "types.h"
 
 namespace {
@@ -191,6 +192,59 @@ Java_pelkidev_com_mx_emuladornds_data_MelonDsCore_nativeRunFrame(
     CopyScreen(env, top, topPixels);
     CopyScreen(env, bottom, bottomPixels);
     return produced;
+}
+
+extern "C" JNIEXPORT jbyteArray JNICALL
+Java_pelkidev_com_mx_emuladornds_data_MelonDsCore_nativeExportState(
+        JNIEnv* env,
+        jobject /* thiz */,
+        jlong handle) {
+    auto* machine = reinterpret_cast<Machine*>(handle);
+    if (machine == nullptr || machine->nds == nullptr) {
+        return nullptr;
+    }
+    melonDS::Savestate save;
+    if (!machine->nds->DoSavestate(&save) || save.Error) {
+        return nullptr;
+    }
+    const melonDS::u32 length = save.Length();
+    if (length == 0) {
+        return nullptr;
+    }
+    jbyteArray out = env->NewByteArray(static_cast<jsize>(length));
+    if (out == nullptr) {
+        return nullptr;
+    }
+    env->SetByteArrayRegion(
+            out,
+            0,
+            static_cast<jsize>(length),
+            reinterpret_cast<const jbyte*>(save.Buffer()));
+    return out;
+}
+
+extern "C" JNIEXPORT jboolean JNICALL
+Java_pelkidev_com_mx_emuladornds_data_MelonDsCore_nativeImportState(
+        JNIEnv* env,
+        jobject /* thiz */,
+        jlong handle,
+        jbyteArray state) {
+    auto* machine = reinterpret_cast<Machine*>(handle);
+    if (machine == nullptr || machine->nds == nullptr || state == nullptr) {
+        return JNI_FALSE;
+    }
+    const jsize length = env->GetArrayLength(state);
+    if (length <= 0) {
+        return JNI_FALSE;
+    }
+    jbyte* bytes = env->GetByteArrayElements(state, nullptr);
+    if (bytes == nullptr) {
+        return JNI_FALSE;
+    }
+    melonDS::Savestate load(bytes, static_cast<melonDS::u32>(length), false);
+    const bool ok = machine->nds->DoSavestate(&load) && !load.Error;
+    env->ReleaseByteArrayElements(state, bytes, JNI_ABORT);
+    return ok ? JNI_TRUE : JNI_FALSE;
 }
 
 extern "C" JNIEXPORT void JNICALL
