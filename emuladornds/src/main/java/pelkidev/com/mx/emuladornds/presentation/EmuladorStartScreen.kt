@@ -91,18 +91,18 @@ fun EmuladorStartScreen(
             .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(
-            text = "Emulador Nintendo DS",
-            style = MaterialTheme.typography.headlineMedium,
-            textAlign = TextAlign.Center,
-        )
-        Button(
-            onClick = { pickNdsFile.launch(arrayOf("*/*")) },
-            modifier = Modifier.padding(top = 8.dp),
-        ) {
-            Text(text = "Elegir .nds")
-        }
         if (uiState.loadedFileName == null) {
+            Text(
+                text = "Emulador Nintendo DS",
+                style = MaterialTheme.typography.headlineMedium,
+                textAlign = TextAlign.Center,
+            )
+            Button(
+                onClick = { pickNdsFile.launch(arrayOf("*/*")) },
+                modifier = Modifier.padding(top = 8.dp),
+            ) {
+                Text(text = "Elegir .nds")
+            }
             if (uiState.showInvalidFileMessage) {
                 Text(
                     text = "Elige un archivo .nds",
