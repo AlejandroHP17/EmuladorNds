@@ -169,7 +169,12 @@ class EmuladorStartViewModelTest {
         cores[0].token = 7
         viewModel.onSaveState()
 
+        assertEquals(ReplaceAsk.Save, viewModel.uiState.value.replaceAsk)
         assertArrayEquals(byteArrayOf(9), File(directory, "juego.nds").readBytes())
+        assertArrayEquals(byteArrayOf(4), File(directory, "juego.nds.2").readBytes())
+
+        viewModel.onReplaceConfirmed()
+
         assertArrayEquals(byteArrayOf(7), File(directory, "juego.nds.2").readBytes())
 
         viewModel.onSlotSelected(1)
@@ -215,6 +220,89 @@ class EmuladorStartViewModelTest {
 
         assertTrue(viewModel.topFrame.value === top)
         assertNull(cores[1].imported)
+    }
+
+    @Test
+    fun emptySlot_savesWithoutAsking() {
+        val directory = createTempDirectory("nds-replace").toFile()
+        val cores = mutableListOf<RememberingCore>()
+        val viewModel = viewModelWithStates(directory, cores)
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+        cores[0].token = 2
+        viewModel.onSaveState()
+
+        assertNull(viewModel.uiState.value.replaceAsk)
+        assertArrayEquals(byteArrayOf(2), File(directory, "juego.nds").readBytes())
+    }
+
+    @Test
+    fun occupiedSlot_asksBeforeReplace() {
+        val directory = createTempDirectory("nds-replace").toFile()
+        val cores = mutableListOf<RememberingCore>()
+        val viewModel = viewModelWithStates(directory, cores)
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+        cores[0].token = 9
+        viewModel.onSaveState()
+        cores[0].token = 4
+        viewModel.onSaveState()
+
+        assertEquals(ReplaceAsk.Save, viewModel.uiState.value.replaceAsk)
+        assertEquals("1", viewModel.uiState.value.replaceLabel)
+        assertArrayEquals(byteArrayOf(9), File(directory, "juego.nds").readBytes())
+    }
+
+    @Test
+    fun confirm_replacesOnlyTheChosenSlot() {
+        val directory = createTempDirectory("nds-replace").toFile()
+        val cores = mutableListOf<RememberingCore>()
+        val viewModel = viewModelWithStates(directory, cores)
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+        cores[0].token = 9
+        viewModel.onSaveState()
+        viewModel.onSlotSelected(2)
+        cores[0].token = 4
+        viewModel.onSaveState()
+        cores[0].token = 7
+        viewModel.onSaveState()
+
+        viewModel.onReplaceConfirmed()
+
+        assertNull(viewModel.uiState.value.replaceAsk)
+        assertArrayEquals(byteArrayOf(7), File(directory, "juego.nds.2").readBytes())
+        assertArrayEquals(byteArrayOf(9), File(directory, "juego.nds").readBytes())
+    }
+
+    @Test
+    fun reject_keepsPreviousState() {
+        val directory = createTempDirectory("nds-replace").toFile()
+        val cores = mutableListOf<RememberingCore>()
+        val viewModel = viewModelWithStates(directory, cores)
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+        cores[0].token = 9
+        viewModel.onSaveState()
+        cores[0].token = 4
+        viewModel.onSaveState()
+
+        viewModel.onReplaceRejected()
+
+        assertNull(viewModel.uiState.value.replaceAsk)
+        assertArrayEquals(byteArrayOf(9), File(directory, "juego.nds").readBytes())
+    }
+
+    @Test
+    fun changingSlot_clearsReplaceAsk() {
+        val directory = createTempDirectory("nds-replace").toFile()
+        val cores = mutableListOf<RememberingCore>()
+        val viewModel = viewModelWithStates(directory, cores)
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+        cores[0].token = 9
+        viewModel.onSaveState()
+        cores[0].token = 4
+        viewModel.onSaveState()
+        viewModel.onSlotSelected(2)
+
+        assertNull(viewModel.uiState.value.replaceAsk)
+        assertArrayEquals(byteArrayOf(9), File(directory, "juego.nds").readBytes())
     }
 
     @Test

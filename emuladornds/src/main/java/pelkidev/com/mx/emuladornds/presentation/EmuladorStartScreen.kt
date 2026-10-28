@@ -110,6 +110,12 @@ fun EmuladorStartScreen(
                 )
             }
         } else {
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -215,6 +221,50 @@ fun EmuladorStartScreen(
                     .fillMaxWidth()
                     .padding(top = 8.dp),
             )
+                }
+                if (uiState.replaceAsk != null) {
+                    ReplaceQuestion(
+                        label = uiState.replaceLabel,
+                        onConfirm = viewModel::onReplaceConfirmed,
+                        onReject = viewModel::onReplaceRejected,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ReplaceQuestion(
+    label: String,
+    onConfirm: () -> Unit,
+    onReject: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xCC000000)),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Text(
+                text = "¿Sustituir $label?",
+                color = Color.White,
+                style = MaterialTheme.typography.titleMedium,
+                textAlign = TextAlign.Center,
+            )
+            Button(
+                onClick = onConfirm,
+                modifier = Modifier.padding(top = 16.dp),
+            ) {
+                Text(text = "Sí, sustituir")
+            }
+            Button(
+                onClick = onReject,
+                modifier = Modifier.padding(top = 8.dp),
+            ) {
+                Text(text = "No")
+            }
         }
     }
 }

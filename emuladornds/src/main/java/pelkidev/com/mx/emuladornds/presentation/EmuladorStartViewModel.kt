@@ -20,12 +20,18 @@ import pelkidev.com.mx.emuladornds.domain.isNdsFileName
 import pelkidev.com.mx.emuladornds.domain.patternFrame
 import java.io.File
 
+enum class ReplaceAsk {
+    Save,
+}
+
 data class EmuladorStartUiState(
     val loadedFileName: String? = null,
     val showInvalidFileMessage: Boolean = false,
     val menuOpen: Boolean = false,
     val selectedSlot: Int = 1,
     val fastForward: Boolean = false,
+    val replaceAsk: ReplaceAsk? = null,
+    val replaceLabel: String = "",
 )
 
 class EmuladorStartViewModel(
@@ -89,7 +95,13 @@ class EmuladorStartViewModel(
 
     fun onSlotSelected(slot: Int) {
         if (slot !in 1..3) return
-        _uiState.update { it.copy(selectedSlot = slot) }
+        _uiState.update {
+            it.copy(
+                selectedSlot = slot,
+                replaceAsk = null,
+                replaceLabel = "",
+            )
+        }
     }
 
     fun onFastForwardToggled() {
@@ -98,14 +110,46 @@ class EmuladorStartViewModel(
     }
 
     fun onSaveState() {
+        if (askIfReplacing(ReplaceAsk.Save)) return
+        writeSelectedState()
+    }
+
+    fun onReplaceConfirmed() {
+        if (_uiState.value.replaceAsk == null) return
+        _uiState.update { it.copy(replaceAsk = null, replaceLabel = "") }
+        writeSelectedState()
+    }
+
+    fun onReplaceRejected() {
+        _uiState.update { it.copy(replaceAsk = null, replaceLabel = "") }
+    }
+
+    private fun writeSelectedState() {
         val name = _uiState.value.loadedFileName ?: return
         val directory = stateDirectory ?: return
+        val slot = _uiState.value.selectedSlot
         val bytes = synchronized(coreLock) {
             core?.exportState()
         } ?: return
         if (bytes.isEmpty()) return
         directory.mkdirs()
-        stateFile(directory, name, _uiState.value.selectedSlot).writeBytes(bytes)
+        stateFile(directory, name, slot).writeBytes(bytes)
+    }
+
+    private fun askIfReplacing(ask: ReplaceAsk): Boolean {
+        if (_uiState.value.replaceAsk != null) return true
+        if (!slotHasState()) return false
+        val slot = _uiState.value.selectedSlot
+        _uiState.update {
+            it.copy(replaceAsk = ask, replaceLabel = slot.toString())
+        }
+        return true
+    }
+
+    private fun slotHasState(): Boolean {
+        val name = _uiState.value.loadedFileName ?: return false
+        val directory = stateDirectory ?: return false
+        return stateFile(directory, name, _uiState.value.selectedSlot).isFile
     }
 
     fun onLoadState() {
