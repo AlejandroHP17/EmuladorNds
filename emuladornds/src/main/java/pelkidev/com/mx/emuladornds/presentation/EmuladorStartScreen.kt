@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -37,9 +38,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
@@ -218,15 +221,23 @@ fun EmuladorStartScreen(
                     modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                 )
             }
-            NdsScreens(
-                topFrame = { topFrame },
-                bottomFrame = { bottomFrame },
-                onStylusMoved = viewModel::onStylusMoved,
-                onStylusReleased = viewModel::onStylusReleased,
+            Box(
                 modifier = Modifier
                     .weight(1f)
-                    .padding(top = 8.dp),
-            )
+                    .fillMaxWidth()
+                    .clipToBounds(),
+            ) {
+                NdsScreens(
+                    topFrame = { topFrame },
+                    bottomFrame = { bottomFrame },
+                    onStylusMoved = viewModel::onStylusMoved,
+                    onStylusReleased = viewModel::onStylusReleased,
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .fillMaxWidth()
+                        .fillMaxHeight(),
+                )
+            }
             NdsControls(
                 onChanged = viewModel::onControlChanged,
                 modifier = Modifier
@@ -291,11 +302,25 @@ private fun NdsControls(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .zIndex(1f),
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            NdsControl("L", NdsButton.L, onChanged, style = ControlStyle.Shoulder)
-            NdsControl("R", NdsButton.R, onChanged, style = ControlStyle.Shoulder)
+            NdsControl(
+                "L",
+                NdsButton.L,
+                onChanged,
+                style = ControlStyle.Shoulder,
+                fill = ShoulderFill,
+            )
+            NdsControl(
+                "R",
+                NdsButton.R,
+                onChanged,
+                style = ControlStyle.Shoulder,
+                fill = ShoulderFill,
+            )
         }
         Spacer(Modifier.height(8.dp))
         Row(
@@ -333,7 +358,7 @@ private fun NdsFace(onChanged: (NdsButton, Boolean) -> Unit) {
         NdsControl("X", NdsButton.X, onChanged, style = ControlStyle.Face, fill = FaceX)
         Row(verticalAlignment = Alignment.CenterVertically) {
             NdsControl("Y", NdsButton.Y, onChanged, style = ControlStyle.Face, fill = FaceY)
-            Spacer(Modifier.width(FaceGap))
+            Spacer(Modifier.width(PadGap))
             NdsControl("A", NdsButton.A, onChanged, style = ControlStyle.Face, fill = FaceA)
         }
         NdsControl("B", NdsButton.B, onChanged, style = ControlStyle.Face, fill = FaceB)
@@ -406,15 +431,15 @@ private data class ControlLook(
 )
 
 private fun ControlStyle.look(): ControlLook = when (this) {
-    ControlStyle.Face -> ControlLook(52.dp, 52.dp, CircleShape, 17.sp)
-    ControlStyle.Menu -> ControlLook(80.dp, 36.dp, RoundedCornerShape(percent = 50), 12.sp)
-    ControlStyle.Pad -> ControlLook(48.dp, 48.dp, RoundedCornerShape(10.dp), 15.sp)
-    ControlStyle.Shoulder -> ControlLook(80.dp, 36.dp, RoundedCornerShape(10.dp), 14.sp)
+    ControlStyle.Face -> ControlLook(58.dp, 58.dp, CircleShape, 18.sp)
+    ControlStyle.Menu -> ControlLook(88.dp, 40.dp, RoundedCornerShape(percent = 50), 13.sp)
+    ControlStyle.Pad -> ControlLook(54.dp, 54.dp, RoundedCornerShape(10.dp), 16.sp)
+    ControlStyle.Shoulder -> ControlLook(88.dp, 40.dp, RoundedCornerShape(10.dp), 15.sp)
 }
 
-private val PadGap = 16.dp
-private val FaceGap = 8.dp
+private val PadGap = 28.dp
 private val PadFill = Color(0xE65A6478)
+private val ShoulderFill = Color(0x995A6478)
 private val FaceA = Color(0xCC3D8BFF)
 private val FaceB = Color(0xCCFF5A5A)
 private val FaceX = Color(0xCC6E7A90)
