@@ -204,10 +204,10 @@ fun EmuladorStartScreen(
                             .padding(top = 8.dp),
                     ) {
                         Text(
-                            text = if (uiState.fastForward) {
-                                "Rápido (encendido)"
-                            } else {
-                                "Rápido"
+                            text = when (uiState.fastForward) {
+                                FastForwardLevel.Off -> "Rápido"
+                                FastForwardLevel.Fast -> "Rápido ×2"
+                                FastForwardLevel.Faster -> "Rápido ×4"
                             },
                         )
                     }

@@ -383,7 +383,7 @@ class EmuladorStartViewModelTest {
     }
 
     @Test
-    fun fastForward_runsTwoFramesAndReturnsToOne() {
+    fun fastForward_cyclesTwoFourAndNormal() {
         val cores = mutableListOf<RememberingCore>()
         val viewModel = EmuladorStartViewModel(
             startCore = { RememberingCore().also(cores::add) },
@@ -400,17 +400,24 @@ class EmuladorStartViewModelTest {
 
         assertEquals(3, cores[0].steps)
         assertEquals(setOf(NdsButton.A), cores[0].held)
+        assertEquals(FastForwardLevel.Fast, viewModel.uiState.value.fastForward)
 
         viewModel.onFastForwardToggled()
         viewModel.onConsoleTick()
 
-        assertEquals(4, cores[0].steps)
+        assertEquals(7, cores[0].steps)
+        assertEquals(FastForwardLevel.Faster, viewModel.uiState.value.fastForward)
 
         viewModel.onFastForwardToggled()
+        viewModel.onConsoleTick()
+
+        assertEquals(8, cores[0].steps)
+        assertEquals(FastForwardLevel.Off, viewModel.uiState.value.fastForward)
+
         viewModel.onFileChosen("otro.nds") { "/tmp/otro.nds" }
         viewModel.onConsoleTick()
 
-        assertFalse(viewModel.uiState.value.fastForward)
+        assertEquals(FastForwardLevel.Off, viewModel.uiState.value.fastForward)
         assertEquals(1, cores[1].steps)
     }
 
@@ -427,7 +434,7 @@ class EmuladorStartViewModelTest {
         viewModel.onMenuToggled()
 
         assertFalse(viewModel.uiState.value.menuOpen)
-        assertTrue(viewModel.uiState.value.fastForward)
+        assertEquals(FastForwardLevel.Fast, viewModel.uiState.value.fastForward)
 
         viewModel.onConsoleTick()
 

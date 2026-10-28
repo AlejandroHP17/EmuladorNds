@@ -25,12 +25,18 @@ enum class ReplaceAsk {
     Leave,
 }
 
+enum class FastForwardLevel {
+    Off,
+    Fast,
+    Faster,
+}
+
 data class EmuladorStartUiState(
     val loadedFileName: String? = null,
     val showInvalidFileMessage: Boolean = false,
     val menuOpen: Boolean = false,
     val selectedSlot: Int = 1,
-    val fastForward: Boolean = false,
+    val fastForward: FastForwardLevel = FastForwardLevel.Off,
     val replaceAsk: ReplaceAsk? = null,
     val replaceLabel: String = "",
 )
@@ -71,7 +77,7 @@ class EmuladorStartViewModel(
                 showInvalidFileMessage = false,
                 menuOpen = false,
                 selectedSlot = 1,
-                fastForward = false,
+                fastForward = FastForwardLevel.Off,
             )
         }
         val opened = try {
@@ -107,7 +113,14 @@ class EmuladorStartViewModel(
 
     fun onFastForwardToggled() {
         if (_uiState.value.loadedFileName == null) return
-        _uiState.update { it.copy(fastForward = !it.fastForward) }
+        _uiState.update { state ->
+            val next = when (state.fastForward) {
+                FastForwardLevel.Off -> FastForwardLevel.Fast
+                FastForwardLevel.Fast -> FastForwardLevel.Faster
+                FastForwardLevel.Faster -> FastForwardLevel.Off
+            }
+            state.copy(fastForward = next)
+        }
     }
 
     fun onSaveState() {
@@ -222,14 +235,22 @@ class EmuladorStartViewModel(
     }
 
     fun onConsoleTick() {
-        val fast = _uiState.value.fastForward
+        val speed = _uiState.value.fastForward
         val frames = synchronized(coreLock) {
             val running = core ?: return
-            if (fast) {
-                running.fastStep()
-                running.fastStep()
-            } else {
-                running.step()
+            when (speed) {
+                FastForwardLevel.Off -> running.step()
+                FastForwardLevel.Fast -> {
+                    running.fastStep()
+                    running.fastStep()
+                }
+                FastForwardLevel.Faster -> {
+                    var last = running.fastStep()
+                    repeat(3) {
+                        last = running.fastStep()
+                    }
+                    last
+                }
             }
         }
         _topFrame.value = frames.first
@@ -241,9 +262,9 @@ class EmuladorStartViewModel(
         paceJob = viewModelScope.launch(Dispatchers.Default) {
             var deadline = System.nanoTime()
             while (isActive) {
-                val fast = _uiState.value.fastForward
+                val speed = _uiState.value.fastForward
                 onConsoleTick()
-                if (core?.audioPaced == true && !fast) {
+                if (core?.audioPaced == true && speed == FastForwardLevel.Off) {
                     deadline = System.nanoTime()
                     continue
                 }
