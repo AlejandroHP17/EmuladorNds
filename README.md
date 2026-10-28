@@ -46,9 +46,13 @@ GitHub Packages (repo `AlejandroHP17/EmuladorNds`): push a `main` (o *Run workfl
 
 El host ya apunta a `https://maven.pkg.github.com/AlejandroHP17/EmuladorNds` y reconsulta SNAPSHOT en cada build (`cacheChangingModulesFor(0)` y `--refresh-dependencies` en el CI de MiniJuegos). Tras un push a `main` de este repo, el siguiente compile de MiniJuegos baja el AAR nuevo.
 
-## Menú de partida (en el AAR)
+## Experiencia en partida (en el AAR)
 
-Con un `.nds` cargado: botón **Menú** → panel con tres huecos **Guardar** / **Cargar**, **Rápido** (×2, conmutado) y confirmación al sobrescribir un hueco. El atrás del sistema guarda en el hueco elegido (misma confirmación) y vuelve al hub vía `onExit`. Estados en `emuladornds-states/` del dispositivo.
+**Sin `.nds`:** título «Emulador Nintendo DS», botón **Elegir .nds** y respeto de la barra de estado y la de navegación.
+
+**Con `.nds` cargado:** desaparecen el título y el selector; quedan nombre del archivo, **Menú**, las dos pantallas y los controles táctiles. Las pantallas van a lo ancho (la superior algo más grande que la inferior), con poco hueco entre ambas, y se ajustan al alto libre sin superponerse. L y R son semitransparentes.
+
+**Menú** → panel con tres huecos **Guardar** / **Cargar**, **Rápido** (ciclo normal → ×2 → ×4 → normal) y confirmación al sobrescribir un hueco. El atrás del sistema guarda en el hueco elegido (misma confirmación) y vuelve al hub vía `onExit`. Estados en `emuladornds-states/` del dispositivo.
 
 ## Integración en el host
 
