@@ -406,13 +406,13 @@ private data class ControlLook(
 )
 
 private fun ControlStyle.look(): ControlLook = when (this) {
-    ControlStyle.Face -> ControlLook(44.dp, 44.dp, CircleShape, 16.sp)
-    ControlStyle.Menu -> ControlLook(72.dp, 32.dp, RoundedCornerShape(percent = 50), 11.sp)
-    ControlStyle.Pad -> ControlLook(40.dp, 40.dp, RoundedCornerShape(10.dp), 14.sp)
-    ControlStyle.Shoulder -> ControlLook(72.dp, 32.dp, RoundedCornerShape(10.dp), 13.sp)
+    ControlStyle.Face -> ControlLook(52.dp, 52.dp, CircleShape, 17.sp)
+    ControlStyle.Menu -> ControlLook(80.dp, 36.dp, RoundedCornerShape(percent = 50), 12.sp)
+    ControlStyle.Pad -> ControlLook(48.dp, 48.dp, RoundedCornerShape(10.dp), 15.sp)
+    ControlStyle.Shoulder -> ControlLook(80.dp, 36.dp, RoundedCornerShape(10.dp), 14.sp)
 }
 
-private val PadGap = 4.dp
+private val PadGap = 16.dp
 private val FaceGap = 8.dp
 private val PadFill = Color(0xE65A6478)
 private val FaceA = Color(0xCC3D8BFF)
