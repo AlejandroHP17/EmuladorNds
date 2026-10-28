@@ -218,6 +218,58 @@ class EmuladorStartViewModelTest {
     }
 
     @Test
+    fun fastForward_runsTwoFramesAndReturnsToOne() {
+        val cores = mutableListOf<RememberingCore>()
+        val viewModel = EmuladorStartViewModel(
+            startCore = { RememberingCore().also(cores::add) },
+            autoAdvance = false,
+        )
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+
+        viewModel.onConsoleTick()
+        assertEquals(1, cores[0].steps)
+
+        viewModel.onFastForwardToggled()
+        viewModel.onControlChanged(NdsButton.A, true)
+        viewModel.onConsoleTick()
+
+        assertEquals(3, cores[0].steps)
+        assertEquals(setOf(NdsButton.A), cores[0].held)
+
+        viewModel.onFastForwardToggled()
+        viewModel.onConsoleTick()
+
+        assertEquals(4, cores[0].steps)
+
+        viewModel.onFastForwardToggled()
+        viewModel.onFileChosen("otro.nds") { "/tmp/otro.nds" }
+        viewModel.onConsoleTick()
+
+        assertFalse(viewModel.uiState.value.fastForward)
+        assertEquals(1, cores[1].steps)
+    }
+
+    @Test
+    fun fastForward_staysOnWhenMenuCloses() {
+        val cores = mutableListOf<RememberingCore>()
+        val viewModel = EmuladorStartViewModel(
+            startCore = { RememberingCore().also(cores::add) },
+            autoAdvance = false,
+        )
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+        viewModel.onMenuToggled()
+        viewModel.onFastForwardToggled()
+        viewModel.onMenuToggled()
+
+        assertFalse(viewModel.uiState.value.menuOpen)
+        assertTrue(viewModel.uiState.value.fastForward)
+
+        viewModel.onConsoleTick()
+
+        assertEquals(2, cores[0].steps)
+    }
+
+    @Test
     fun reopenedEmulator_loadsTheStateOfTheSameFile() {
         val directory = createTempDirectory("nds-state").toFile()
         val firstCores = mutableListOf<RememberingCore>()
@@ -264,13 +316,22 @@ class EmuladorStartViewModelTest {
         var token: Byte = 1
         var imported: ByteArray? = null
             private set
+        var steps = 0
+            private set
+        var held: Set<NdsButton> = emptySet()
+            private set
         private var shown: Byte = 1
 
         override fun step(): Pair<NdsFrame, NdsFrame> {
+            steps += 1
             val pixels = IntArray(NdsFrame.WIDTH * NdsFrame.HEIGHT)
             pixels[0] = shown.toInt() and 0xFF
             val frame = NdsFrame(pixels)
             return frame to NdsFrame(pixels)
+        }
+
+        override fun hold(buttons: Set<NdsButton>) {
+            held = buttons
         }
 
         override fun exportState(): ByteArray = byteArrayOf(token)

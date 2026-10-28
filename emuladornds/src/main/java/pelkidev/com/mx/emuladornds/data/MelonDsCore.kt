@@ -23,6 +23,8 @@ enum class NdsButton {
 
 interface NdsCore {
     fun step(): Pair<NdsFrame, NdsFrame>
+
+    fun fastStep(): Pair<NdsFrame, NdsFrame> = step()
     fun hold(buttons: Set<NdsButton>) {}
     fun touch(x: Int, y: Int) {}
     fun releaseTouch() {}
@@ -81,7 +83,11 @@ class MelonDsCore(romPath: String) : NdsCore {
         touching = false
     }
 
-    override fun step(): Pair<NdsFrame, NdsFrame> {
+    override fun step(): Pair<NdsFrame, NdsFrame> = runFrame(blocking = true)
+
+    override fun fastStep(): Pair<NdsFrame, NdsFrame> = runFrame(blocking = false)
+
+    private fun runFrame(blocking: Boolean): Pair<NdsFrame, NdsFrame> {
         check(handle != 0L) { "melonDS ya está cerrado" }
         produced = nativeRunFrame(
             handle,
@@ -93,15 +99,16 @@ class MelonDsCore(romPath: String) : NdsCore {
             touchY,
             pcm,
         )
-        playProduced()
+        playProduced(blocking)
         return NdsFrame(topPixels) to NdsFrame(bottomPixels)
     }
 
-    private fun playProduced() {
+    private fun playProduced(blocking: Boolean) {
         val track = track ?: return
         if (produced <= 0) return
         if (track.playState != AudioTrack.PLAYSTATE_PLAYING) track.play()
-        track.write(pcm, 0, produced * 2, AudioTrack.WRITE_BLOCKING)
+        val mode = if (blocking) AudioTrack.WRITE_BLOCKING else AudioTrack.WRITE_NON_BLOCKING
+        track.write(pcm, 0, produced * 2, mode)
     }
 
     override fun exportState(): ByteArray {

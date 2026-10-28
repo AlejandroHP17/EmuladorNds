@@ -176,6 +176,20 @@ fun EmuladorStartScreen(
                             Text(text = "Cargar")
                         }
                     }
+                    Button(
+                        onClick = viewModel::onFastForwardToggled,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp),
+                    ) {
+                        Text(
+                            text = if (uiState.fastForward) {
+                                "Rápido (encendido)"
+                            } else {
+                                "Rápido"
+                            },
+                        )
+                    }
                 }
             }
             if (uiState.showInvalidFileMessage) {

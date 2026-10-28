@@ -25,6 +25,7 @@ data class EmuladorStartUiState(
     val showInvalidFileMessage: Boolean = false,
     val menuOpen: Boolean = false,
     val selectedSlot: Int = 1,
+    val fastForward: Boolean = false,
 )
 
 class EmuladorStartViewModel(
@@ -63,6 +64,7 @@ class EmuladorStartViewModel(
                 showInvalidFileMessage = false,
                 menuOpen = false,
                 selectedSlot = 1,
+                fastForward = false,
             )
         }
         val opened = try {
@@ -88,6 +90,11 @@ class EmuladorStartViewModel(
     fun onSlotSelected(slot: Int) {
         if (slot !in 1..3) return
         _uiState.update { it.copy(selectedSlot = slot) }
+    }
+
+    fun onFastForwardToggled() {
+        if (_uiState.value.loadedFileName == null) return
+        _uiState.update { it.copy(fastForward = !it.fastForward) }
     }
 
     fun onSaveState() {
@@ -140,9 +147,16 @@ class EmuladorStartViewModel(
     }
 
     fun onConsoleTick() {
+        val fast = _uiState.value.fastForward
         val frames = synchronized(coreLock) {
-            core?.step()
-        } ?: return
+            val running = core ?: return
+            if (fast) {
+                running.fastStep()
+                running.fastStep()
+            } else {
+                running.step()
+            }
+        }
         _topFrame.value = frames.first
         _bottomFrame.value = frames.second
     }
@@ -152,8 +166,9 @@ class EmuladorStartViewModel(
         paceJob = viewModelScope.launch(Dispatchers.Default) {
             var deadline = System.nanoTime()
             while (isActive) {
+                val fast = _uiState.value.fastForward
                 onConsoleTick()
-                if (core?.audioPaced == true) {
+                if (core?.audioPaced == true && !fast) {
                     deadline = System.nanoTime()
                     continue
                 }
