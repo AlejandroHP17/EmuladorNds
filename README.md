@@ -46,6 +46,10 @@ GitHub Packages (repo `AlejandroHP17/EmuladorNds`): push a `main` (o *Run workfl
 
 El host ya apunta a `https://maven.pkg.github.com/AlejandroHP17/EmuladorNds` y reconsulta SNAPSHOT en cada build (`cacheChangingModulesFor(0)` y `--refresh-dependencies` en el CI de MiniJuegos). Tras un push a `main` de este repo, el siguiente compile de MiniJuegos baja el AAR nuevo.
 
+## Menú de partida (en el AAR)
+
+Con un `.nds` cargado: botón **Menú** → panel con tres huecos **Guardar** / **Cargar**, **Rápido** (×2, conmutado) y confirmación al sobrescribir un hueco. El atrás del sistema guarda en el hueco elegido (misma confirmación) y vuelve al hub vía `onExit`. Estados en `emuladornds-states/` del dispositivo.
+
 ## Integración en el host
 
 Cableado en `MiniJuegos/`:
