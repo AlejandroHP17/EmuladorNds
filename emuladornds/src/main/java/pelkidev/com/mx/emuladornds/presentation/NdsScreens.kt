@@ -5,14 +5,18 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
@@ -29,18 +33,37 @@ fun NdsScreens(
     onStylusMoved: ((Int, Int) -> Unit)? = null,
     onStylusReleased: (() -> Unit)? = null,
 ) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+    val screenRatio = NdsFrame.WIDTH.toFloat() / NdsFrame.HEIGHT
+    val gap = 8.dp
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .fillMaxHeight(),
+        contentAlignment = Alignment.Center,
     ) {
-        NdsScreen(frame = topFrame, modifier = Modifier.fillMaxWidth())
-        NdsScreen(
-            frame = bottomFrame,
-            modifier = Modifier.fillMaxWidth(),
-            onStylusMoved = onStylusMoved,
-            onStylusReleased = onStylusReleased,
-        )
+        val gapPx = with(LocalDensity.current) { gap.toPx() }
+        val maxW = constraints.maxWidth.toFloat()
+        val maxH = constraints.maxHeight.toFloat()
+        val heightAtFullWidth = maxW * 2f / screenRatio + gapPx
+        val widthPx = if (maxH <= 0f || heightAtFullWidth <= maxH) {
+            maxW
+        } else {
+            ((maxH - gapPx) * screenRatio / 2f).coerceAtMost(maxW)
+        }
+        val width = with(LocalDensity.current) { widthPx.toDp() }
+        Column(
+            modifier = Modifier.width(width),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(gap),
+        ) {
+            NdsScreen(frame = topFrame, modifier = Modifier.fillMaxWidth())
+            NdsScreen(
+                frame = bottomFrame,
+                modifier = Modifier.fillMaxWidth(),
+                onStylusMoved = onStylusMoved,
+                onStylusReleased = onStylusReleased,
+            )
+        }
     }
 }
 

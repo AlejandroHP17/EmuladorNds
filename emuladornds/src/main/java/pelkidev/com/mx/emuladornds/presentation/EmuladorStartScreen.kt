@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -225,6 +226,8 @@ fun EmuladorStartScreen(
                 onStylusReleased = viewModel::onStylusReleased,
                 modifier = Modifier
                     .weight(1f)
+                    .fillMaxWidth()
+                    .fillMaxHeight()
                     .padding(top = 8.dp),
             )
             NdsControls(
