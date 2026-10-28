@@ -173,7 +173,7 @@ class EmuladorStartViewModelTest {
         assertArrayEquals(byteArrayOf(9), File(directory, "juego.nds").readBytes())
         assertArrayEquals(byteArrayOf(4), File(directory, "juego.nds.2").readBytes())
 
-        viewModel.onReplaceConfirmed()
+        assertFalse(viewModel.onReplaceConfirmed())
 
         assertArrayEquals(byteArrayOf(7), File(directory, "juego.nds.2").readBytes())
 
@@ -223,6 +223,83 @@ class EmuladorStartViewModelTest {
     }
 
     @Test
+    fun leave_emptySlot_writesAndClears() {
+        val directory = createTempDirectory("nds-leave").toFile()
+        val cores = mutableListOf<RememberingCore>()
+        val viewModel = viewModelWithStates(directory, cores)
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+        cores[0].token = 5
+
+        assertTrue(viewModel.onLeave())
+
+        assertNull(viewModel.uiState.value.loadedFileName)
+        assertArrayEquals(byteArrayOf(5), File(directory, "juego.nds").readBytes())
+        assertTrue(cores[0].closed)
+    }
+
+    @Test
+    fun leave_occupiedSlot_asksBeforeExit() {
+        val directory = createTempDirectory("nds-leave").toFile()
+        val cores = mutableListOf<RememberingCore>()
+        val viewModel = viewModelWithStates(directory, cores)
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+        cores[0].token = 9
+        viewModel.onSaveState()
+        cores[0].token = 4
+
+        assertFalse(viewModel.onLeave())
+
+        assertEquals(ReplaceAsk.Leave, viewModel.uiState.value.replaceAsk)
+        assertArrayEquals(byteArrayOf(9), File(directory, "juego.nds").readBytes())
+        assertEquals("juego.nds", viewModel.uiState.value.loadedFileName)
+    }
+
+    @Test
+    fun leave_confirm_replacesAndClears() {
+        val directory = createTempDirectory("nds-leave").toFile()
+        val cores = mutableListOf<RememberingCore>()
+        val viewModel = viewModelWithStates(directory, cores)
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+        cores[0].token = 9
+        viewModel.onSaveState()
+        cores[0].token = 4
+        assertFalse(viewModel.onLeave())
+
+        assertTrue(viewModel.onReplaceConfirmed())
+
+        assertNull(viewModel.uiState.value.loadedFileName)
+        assertArrayEquals(byteArrayOf(4), File(directory, "juego.nds").readBytes())
+    }
+
+    @Test
+    fun leave_reject_keepsStateAndClears() {
+        val directory = createTempDirectory("nds-leave").toFile()
+        val cores = mutableListOf<RememberingCore>()
+        val viewModel = viewModelWithStates(directory, cores)
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+        cores[0].token = 9
+        viewModel.onSaveState()
+        cores[0].token = 4
+        assertFalse(viewModel.onLeave())
+
+        assertTrue(viewModel.onReplaceRejected())
+
+        assertNull(viewModel.uiState.value.loadedFileName)
+        assertArrayEquals(byteArrayOf(9), File(directory, "juego.nds").readBytes())
+    }
+
+    @Test
+    fun leave_withoutRom_doesNotCreateState() {
+        val directory = createTempDirectory("nds-leave").toFile()
+        File(directory, "juego.nds").writeBytes(byteArrayOf(3))
+        val viewModel = viewModelWithStates(directory, mutableListOf())
+
+        assertTrue(viewModel.onLeave())
+
+        assertArrayEquals(byteArrayOf(3), File(directory, "juego.nds").readBytes())
+    }
+
+    @Test
     fun emptySlot_savesWithoutAsking() {
         val directory = createTempDirectory("nds-replace").toFile()
         val cores = mutableListOf<RememberingCore>()
@@ -265,7 +342,7 @@ class EmuladorStartViewModelTest {
         cores[0].token = 7
         viewModel.onSaveState()
 
-        viewModel.onReplaceConfirmed()
+        assertFalse(viewModel.onReplaceConfirmed())
 
         assertNull(viewModel.uiState.value.replaceAsk)
         assertArrayEquals(byteArrayOf(7), File(directory, "juego.nds.2").readBytes())
@@ -283,7 +360,7 @@ class EmuladorStartViewModelTest {
         cores[0].token = 4
         viewModel.onSaveState()
 
-        viewModel.onReplaceRejected()
+        assertFalse(viewModel.onReplaceRejected())
 
         assertNull(viewModel.uiState.value.replaceAsk)
         assertArrayEquals(byteArrayOf(9), File(directory, "juego.nds").readBytes())
@@ -431,7 +508,12 @@ class EmuladorStartViewModelTest {
             return true
         }
 
-        override fun close() = Unit
+        var closed = false
+            private set
+
+        override fun close() {
+            closed = true
+        }
     }
 
     private class FakeCore : NdsCore {

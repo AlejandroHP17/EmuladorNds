@@ -72,7 +72,9 @@ fun EmuladorStartScreen(
     val topFrame by viewModel.topFrame.collectAsStateWithLifecycle()
     val bottomFrame by viewModel.bottomFrame.collectAsStateWithLifecycle()
     val context = LocalContext.current
-    BackHandler(onBack = onExit)
+    BackHandler {
+        if (viewModel.onLeave()) onExit()
+    }
     val pickNdsFile = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
     ) { uri ->
@@ -225,8 +227,8 @@ fun EmuladorStartScreen(
                 if (uiState.replaceAsk != null) {
                     ReplaceQuestion(
                         label = uiState.replaceLabel,
-                        onConfirm = viewModel::onReplaceConfirmed,
-                        onReject = viewModel::onReplaceRejected,
+                        onConfirm = { if (viewModel.onReplaceConfirmed()) onExit() },
+                        onReject = { if (viewModel.onReplaceRejected()) onExit() },
                     )
                 }
             }

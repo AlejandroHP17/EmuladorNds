@@ -22,6 +22,7 @@ import java.io.File
 
 enum class ReplaceAsk {
     Save,
+    Leave,
 }
 
 data class EmuladorStartUiState(
@@ -114,14 +115,44 @@ class EmuladorStartViewModel(
         writeSelectedState()
     }
 
-    fun onReplaceConfirmed() {
-        if (_uiState.value.replaceAsk == null) return
+    fun onReplaceConfirmed(): Boolean {
+        val ask = _uiState.value.replaceAsk ?: return false
         _uiState.update { it.copy(replaceAsk = null, replaceLabel = "") }
-        writeSelectedState()
+        when (ask) {
+            ReplaceAsk.Save -> writeSelectedState()
+            ReplaceAsk.Leave -> finishLeave(writeState = true)
+        }
+        return ask == ReplaceAsk.Leave
     }
 
-    fun onReplaceRejected() {
+    fun onReplaceRejected(): Boolean {
+        val ask = _uiState.value.replaceAsk ?: return false
         _uiState.update { it.copy(replaceAsk = null, replaceLabel = "") }
+        if (ask == ReplaceAsk.Leave) {
+            finishLeave(writeState = false)
+            return true
+        }
+        return false
+    }
+
+    /** Atrás del sistema: guarda en el hueco elegido y sale al hub si procede. */
+    fun onLeave(): Boolean {
+        if (_uiState.value.loadedFileName == null) {
+            stopCore()
+            return true
+        }
+        if (askIfReplacing(ReplaceAsk.Leave)) return false
+        finishLeave(writeState = true)
+        return true
+    }
+
+    private fun finishLeave(writeState: Boolean) {
+        if (writeState) writeSelectedState()
+        stopCore()
+        heldButtons = emptySet()
+        _topFrame.value = null
+        _bottomFrame.value = null
+        _uiState.value = EmuladorStartUiState()
     }
 
     private fun writeSelectedState() {
