@@ -45,6 +45,7 @@ class AndroidNdsBluetoothLink(
     private var output: OutputStream? = null
     private var connectJob: Job? = null
     private var readerJob: Job? = null
+    private var writerJob: Job? = null
 
     @SuppressLint("MissingPermission")
     override fun connect(matchingGameId: String) {
@@ -56,16 +57,22 @@ class AndroidNdsBluetoothLink(
 
         connectJob = scope.launch {
             linkedFlag.set(false)
-            val opened = openSocket(bluetooth) ?: return@launch
-            if (!performHandshake(opened.socket, gameId)) {
-                closeQuietly(opened.socket)
-                return@launch
+            try {
+                val opened = openSocket(bluetooth) ?: return@launch
+                if (!performHandshake(opened.socket, gameId)) {
+                    closeQuietly(opened.socket)
+                    return@launch
+                }
+                activeSocket = opened.socket
+                output = opened.socket.outputStream
+                nativeMpAttach(if (opened.host) 0 else 1)
+                linkedFlag.set(true)
+                startReader(opened.socket)
+                startWriter()
+            } catch (_: SecurityException) {
+                linkedFlag.set(false)
+                nativeMpDetach()
             }
-            activeSocket = opened.socket
-            output = opened.socket.outputStream
-            nativeMpAttach(if (opened.host) 0 else 1)
-            startReader(opened.socket)
-            linkedFlag.set(true)
         }
     }
 
@@ -74,6 +81,8 @@ class AndroidNdsBluetoothLink(
         connectJob = null
         readerJob?.cancel()
         readerJob = null
+        writerJob?.cancel()
+        writerJob = null
         linkedFlag.set(false)
         nativeMpDetach()
         synchronized(ioLock) {
@@ -84,9 +93,6 @@ class AndroidNdsBluetoothLink(
     }
 
     override fun sendMp(frame: ByteArray): Boolean = writeFrame(frame)
-
-    @Suppress("unused")
-    fun sendMpFrame(frame: ByteArray): Boolean = writeFrame(frame)
 
     @SuppressLint("MissingPermission")
     private suspend fun openSocket(bluetooth: BluetoothAdapter): OpenedLink? = coroutineScope {
@@ -145,6 +151,16 @@ class AndroidNdsBluetoothLink(
             remote == localGameId
         } catch (_: IOException) {
             false
+        }
+    }
+
+    private fun startWriter() {
+        writerJob?.cancel()
+        writerJob = scope.launch {
+            while (isActive && linkedFlag.get()) {
+                val frame = nativeMpPoll(POLL_MS) ?: continue
+                if (!writeFrame(frame)) break
+            }
         }
     }
 
@@ -212,6 +228,8 @@ class AndroidNdsBluetoothLink(
 
     private external fun nativeMpDetach()
 
+    private external fun nativeMpPoll(timeoutMs: Int): ByteArray?
+
     private external fun nativeMpEnqueue(frame: ByteArray)
 
     private data class OpenedLink(
@@ -224,6 +242,7 @@ class AndroidNdsBluetoothLink(
         private val SERVICE_UUID: UUID =
             UUID.fromString("7a5fbc69-2e8c-4b91-9c22-efc905803957")
         private const val LINK_TIMEOUT_MS = 15_000L
+        private const val POLL_MS = 15
         private const val JOIN_PREFIX = "JOIN:"
         private const val FRAME_END = '\n'.code.toByte()
 

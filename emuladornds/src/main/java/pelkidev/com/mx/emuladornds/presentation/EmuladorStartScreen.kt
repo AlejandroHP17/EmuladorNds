@@ -1,7 +1,10 @@
 package pelkidev.com.mx.emuladornds.presentation
 
+import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.os.Build
 import android.provider.OpenableColumns
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
@@ -88,6 +91,11 @@ fun EmuladorStartScreen(
     val topFrame by viewModel.topFrame.collectAsStateWithLifecycle()
     val bottomFrame by viewModel.bottomFrame.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val requestBluetoothConnect = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission(),
+    ) { granted ->
+        if (granted) viewModel.onBluetoothConnect()
+    }
     BackHandler {
         if (viewModel.onLeave()) onExit()
     }
@@ -237,7 +245,16 @@ fun EmuladorStartScreen(
                             )
                         } else {
                             Button(
-                                onClick = viewModel::onBluetoothConnect,
+                                onClick = {
+                                    val needsPermission = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                                        context.checkSelfPermission(Manifest.permission.BLUETOOTH_CONNECT) !=
+                                        PackageManager.PERMISSION_GRANTED
+                                    if (needsPermission) {
+                                        requestBluetoothConnect.launch(Manifest.permission.BLUETOOTH_CONNECT)
+                                    } else {
+                                        viewModel.onBluetoothConnect()
+                                    }
+                                },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 8.dp),

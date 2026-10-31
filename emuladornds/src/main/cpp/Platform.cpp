@@ -359,9 +359,7 @@ struct MpBridge {
     std::condition_variable cv;
     std::deque<std::vector<melonDS::u8>> packets;
     std::deque<std::vector<melonDS::u8>> replies;
-    JavaVM* jvm = nullptr;
-    jobject peer = nullptr;
-    jmethodID sendMethod = nullptr;
+    std::deque<std::vector<melonDS::u8>> outbound;
     int senderId = 0;
     bool attached = false;
     bool peerGone = false;
@@ -429,10 +427,11 @@ int RecvFromQueue(
 }
 
 int SendMp(melonDS::u8* data, int len, melonDS::u64 timestamp, melonDS::u32 type) {
-    if (!gMp.attached || gMp.jvm == nullptr || gMp.peer == nullptr || gMp.sendMethod == nullptr) {
+    if (len < 0 || len > kMaxMpPayload) {
         return 0;
     }
-    if (len < 0 || len > kMaxMpPayload) {
+    std::lock_guard<std::mutex> lock(gMp.mutex);
+    if (!gMp.attached) {
         return 0;
     }
     std::vector<melonDS::u8> frame(kMpHeaderSize + static_cast<size_t>(len));
@@ -447,36 +446,12 @@ int SendMp(melonDS::u8* data, int len, melonDS::u64 timestamp, melonDS::u32 type
     if (len > 0 && data != nullptr) {
         std::memcpy(frame.data() + kMpHeaderSize, data, static_cast<size_t>(len));
     }
-
-    JNIEnv* env = nullptr;
-    bool attachedThread = false;
-    if (gMp.jvm->GetEnv(reinterpret_cast<void**>(&env), JNI_VERSION_1_6) != JNI_OK) {
-        if (gMp.jvm->AttachCurrentThread(&env, nullptr) != JNI_OK || env == nullptr) {
-            return 0;
-        }
-        attachedThread = true;
+    if (gMp.outbound.size() >= kMaxInbound) {
+        gMp.outbound.pop_front();
     }
-    jbyteArray arr = env->NewByteArray(static_cast<jsize>(frame.size()));
-    if (arr == nullptr) {
-        if (attachedThread) {
-            gMp.jvm->DetachCurrentThread();
-        }
-        return 0;
-    }
-    env->SetByteArrayRegion(
-            arr,
-            0,
-            static_cast<jsize>(frame.size()),
-            reinterpret_cast<const jbyte*>(frame.data()));
-    const jboolean ok = env->CallBooleanMethod(gMp.peer, gMp.sendMethod, arr);
-    if (env->ExceptionCheck()) {
-        env->ExceptionClear();
-    }
-    env->DeleteLocalRef(arr);
-    if (attachedThread) {
-        gMp.jvm->DetachCurrentThread();
-    }
-    return ok ? len : 0;
+    gMp.outbound.push_back(std::move(frame));
+    gMp.cv.notify_all();
+    return len;
 }
 
 }  // namespace
@@ -609,40 +584,56 @@ void* DynamicLibrary_LoadFunction(DynamicLibrary* lib, const char* name) {
 
 extern "C" JNIEXPORT void JNICALL
 Java_pelkidev_com_mx_emuladornds_data_AndroidNdsBluetoothLink_nativeMpAttach(
-        JNIEnv* env,
-        jobject thiz,
+        JNIEnv* /* env */,
+        jobject /* thiz */,
         jint senderId) {
-    env->GetJavaVM(&gMp.jvm);
     std::lock_guard<std::mutex> lock(gMp.mutex);
-    if (gMp.peer != nullptr) {
-        env->DeleteGlobalRef(gMp.peer);
-        gMp.peer = nullptr;
-    }
-    gMp.peer = env->NewGlobalRef(thiz);
-    const jclass cls = env->GetObjectClass(thiz);
-    gMp.sendMethod = env->GetMethodID(cls, "sendMpFrame", "([B)Z");
-    env->DeleteLocalRef(cls);
     gMp.senderId = senderId;
-    gMp.attached = gMp.sendMethod != nullptr;
+    gMp.attached = true;
     gMp.peerGone = false;
     gMp.lastHostId = -1;
     gMp.packets.clear();
     gMp.replies.clear();
+    gMp.outbound.clear();
 }
 
 extern "C" JNIEXPORT void JNICALL
 Java_pelkidev_com_mx_emuladornds_data_AndroidNdsBluetoothLink_nativeMpDetach(
-        JNIEnv* env,
+        JNIEnv* /* env */,
         jobject /* thiz */) {
     std::lock_guard<std::mutex> lock(gMp.mutex);
     gMp.attached = false;
     gMp.peerGone = true;
-    gMp.sendMethod = nullptr;
-    if (gMp.peer != nullptr) {
-        env->DeleteGlobalRef(gMp.peer);
-        gMp.peer = nullptr;
-    }
+    gMp.outbound.clear();
     gMp.cv.notify_all();
+}
+
+extern "C" JNIEXPORT jbyteArray JNICALL
+Java_pelkidev_com_mx_emuladornds_data_AndroidNdsBluetoothLink_nativeMpPoll(
+        JNIEnv* env,
+        jobject /* thiz */,
+        jint timeoutMs) {
+    std::unique_lock<std::mutex> lock(gMp.mutex);
+    const int waitMs = timeoutMs < 0 ? 0 : static_cast<int>(timeoutMs);
+    gMp.cv.wait_for(lock, std::chrono::milliseconds(waitMs), [&] {
+        return !gMp.outbound.empty() || !gMp.attached;
+    });
+    if (gMp.outbound.empty()) {
+        return nullptr;
+    }
+    std::vector<melonDS::u8> frame = std::move(gMp.outbound.front());
+    gMp.outbound.pop_front();
+    lock.unlock();
+    jbyteArray arr = env->NewByteArray(static_cast<jsize>(frame.size()));
+    if (arr == nullptr) {
+        return nullptr;
+    }
+    env->SetByteArrayRegion(
+            arr,
+            0,
+            static_cast<jsize>(frame.size()),
+            reinterpret_cast<const jbyte*>(frame.data()));
+    return arr;
 }
 
 extern "C" JNIEXPORT void JNICALL
