@@ -528,6 +528,69 @@ class EmuladorStartViewModelTest {
     }
 
     @Test
+    fun deactivatingCheat_clearsCoreAndMenu() {
+        val cores = mutableListOf<FakeCore>()
+        val viewModel = EmuladorStartViewModel(
+            startCore = { FakeCore().also(cores::add) },
+            autoAdvance = false,
+        )
+        viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
+        viewModel.onCheatActivated("max-money")
+
+        viewModel.onCheatDeactivated("max-money")
+
+        assertTrue(viewModel.uiState.value.cheatMenuItems.none { it.active })
+        assertTrue(cores.single().activeCheat.isEmpty())
+    }
+
+    @Test
+    fun deactivatedCheat_staysOffWhilePlaying() {
+        val cores = mutableListOf<FakeCore>()
+        val viewModel = EmuladorStartViewModel(
+            startCore = { FakeCore().also(cores::add) },
+            autoAdvance = false,
+        )
+        viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
+        viewModel.onCheatActivated("max-money")
+        viewModel.onCheatDeactivated("max-money")
+
+        viewModel.onConsoleTick()
+        viewModel.onConsoleTick()
+
+        assertTrue(viewModel.uiState.value.cheatMenuItems.none { it.active })
+        assertTrue(cores.single().activeCheat.isEmpty())
+    }
+
+    @Test
+    fun deactivatingOne_leavesOtherCheatsInactive() {
+        val viewModel = EmuladorStartViewModel(
+            startCore = { FakeCore() },
+            autoAdvance = false,
+        )
+        viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
+        viewModel.onCheatActivated("max-money")
+
+        viewModel.onCheatDeactivated("max-money")
+
+        assertFalse(viewModel.uiState.value.cheatMenuItems.single { it.id == "infinite-rare-candy" }.active)
+    }
+
+    @Test
+    fun deactivatingInactiveCheat_isIgnored() {
+        val cores = mutableListOf<FakeCore>()
+        val viewModel = EmuladorStartViewModel(
+            startCore = { FakeCore().also(cores::add) },
+            autoAdvance = false,
+        )
+        viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
+
+        viewModel.onCheatDeactivated("max-money")
+
+        assertTrue(viewModel.uiState.value.cheatMenuItems.none { it.active })
+        assertTrue(cores.single().activeCheat.isEmpty())
+    }
+
+    @Test
     fun newRom_clearsActiveCheatAndReloadsList() {
         val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
