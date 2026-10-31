@@ -5,6 +5,7 @@
 #include <cstdio>
 #include <memory>
 
+#include "ARCodeFile.h"
 #include "Args.h"
 #include "NDS.h"
 #include "NDSCart.h"
@@ -245,6 +246,39 @@ Java_pelkidev_com_mx_emuladornds_data_MelonDsCore_nativeImportState(
     const bool ok = machine->nds->DoSavestate(&load) && !load.Error;
     env->ReleaseByteArrayElements(state, bytes, JNI_ABORT);
     return ok ? JNI_TRUE : JNI_FALSE;
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_pelkidev_com_mx_emuladornds_data_MelonDsCore_nativeSetActiveCheats(
+        JNIEnv* env,
+        jobject /* thiz */,
+        jlong handle,
+        jintArray codeWords) {
+    auto* machine = reinterpret_cast<Machine*>(handle);
+    if (machine == nullptr || machine->nds == nullptr) {
+        return;
+    }
+    machine->nds->AREngine.Cheats.clear();
+    if (codeWords == nullptr) {
+        return;
+    }
+    const jsize length = env->GetArrayLength(codeWords);
+    if (length <= 0) {
+        return;
+    }
+    jint* elements = env->GetIntArrayElements(codeWords, nullptr);
+    if (elements == nullptr) {
+        return;
+    }
+    melonDS::ARCode cheat;
+    cheat.Name = "prepared";
+    cheat.Enabled = true;
+    cheat.Code.resize(static_cast<size_t>(length));
+    for (jsize i = 0; i < length; ++i) {
+        cheat.Code[static_cast<size_t>(i)] = static_cast<melonDS::u32>(elements[i]);
+    }
+    env->ReleaseIntArrayElements(codeWords, elements, JNI_ABORT);
+    machine->nds->AREngine.Cheats.push_back(cheat);
 }
 
 extern "C" JNIEXPORT void JNICALL

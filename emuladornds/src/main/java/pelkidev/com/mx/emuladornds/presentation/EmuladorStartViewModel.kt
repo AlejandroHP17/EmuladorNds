@@ -18,6 +18,7 @@ import pelkidev.com.mx.emuladornds.domain.NdsFrame
 import pelkidev.com.mx.emuladornds.domain.NdsPace
 import pelkidev.com.mx.emuladornds.domain.isNdsFileName
 import pelkidev.com.mx.emuladornds.domain.patternFrame
+import pelkidev.com.mx.emuladornds.domain.findPreparedCheat
 import pelkidev.com.mx.emuladornds.domain.preparedCheatsForNds
 import java.io.File
 
@@ -100,6 +101,7 @@ class EmuladorStartViewModel(
         synchronized(coreLock) {
             opened.hold(emptySet())
             opened.releaseTouch()
+            opened.setActiveCheat(intArrayOf())
             core = opened
         }
         if (autoAdvance) {
@@ -110,6 +112,24 @@ class EmuladorStartViewModel(
     fun onMenuToggled() {
         if (_uiState.value.loadedFileName == null) return
         _uiState.update { it.copy(menuOpen = !it.menuOpen) }
+    }
+
+    fun onCheatActivated(cheatId: String) {
+        val fileName = _uiState.value.loadedFileName ?: return
+        val items = _uiState.value.cheatMenuItems
+        if (items.none { it.id == cheatId }) return
+        if (items.any { it.active }) return
+        val cheat = findPreparedCheat(fileName, cheatId) ?: return
+        synchronized(coreLock) {
+            core?.setActiveCheat(cheat.codeWords)
+        }
+        _uiState.update {
+            it.copy(
+                cheatMenuItems = items.map { item ->
+                    item.copy(active = item.id == cheatId)
+                },
+            )
+        }
     }
 
     fun onSlotSelected(slot: Int) {

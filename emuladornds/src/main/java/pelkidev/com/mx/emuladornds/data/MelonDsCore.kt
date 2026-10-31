@@ -34,6 +34,9 @@ interface NdsCore {
 
     fun importState(state: ByteArray): Boolean = false
 
+    /** Action Replay preparado; vacío quita trucos activos. */
+    fun setActiveCheat(codeWords: IntArray) {}
+
     /** Si es true, `step()` ya espera al audio y el ViewModel no añade otra pausa. */
     val audioPaced: Boolean get() = false
 }
@@ -121,6 +124,11 @@ class MelonDsCore(romPath: String) : NdsCore {
         return nativeImportState(handle, state)
     }
 
+    override fun setActiveCheat(codeWords: IntArray) {
+        if (handle == 0L) return
+        nativeSetActiveCheats(handle, codeWords)
+    }
+
     override fun close() {
         track?.let { playing ->
             if (playing.playState == AudioTrack.PLAYSTATE_PLAYING) playing.pause()
@@ -149,6 +157,8 @@ class MelonDsCore(romPath: String) : NdsCore {
     private external fun nativeExportState(handle: Long): ByteArray?
 
     private external fun nativeImportState(handle: Long, state: ByteArray): Boolean
+
+    private external fun nativeSetActiveCheats(handle: Long, codeWords: IntArray)
 
     private external fun nativeDestroy(handle: Long)
 
