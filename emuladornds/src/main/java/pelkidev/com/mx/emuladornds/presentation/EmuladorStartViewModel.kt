@@ -132,6 +132,21 @@ class EmuladorStartViewModel(
         }
     }
 
+    fun onCheatDeactivated(cheatId: String) {
+        val items = _uiState.value.cheatMenuItems
+        if (items.none { it.id == cheatId && it.active }) return
+        synchronized(coreLock) {
+            core?.setActiveCheat(intArrayOf())
+        }
+        _uiState.update {
+            it.copy(
+                cheatMenuItems = items.map { item ->
+                    item.copy(active = false)
+                },
+            )
+        }
+    }
+
     fun onSlotSelected(slot: Int) {
         if (slot !in 1..3) return
         _uiState.update {

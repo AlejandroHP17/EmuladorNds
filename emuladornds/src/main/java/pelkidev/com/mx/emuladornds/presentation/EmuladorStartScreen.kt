@@ -226,14 +226,20 @@ fun EmuladorStartScreen(
                     } else {
                         uiState.cheatMenuItems.forEach { cheat ->
                             Button(
-                                onClick = { viewModel.onCheatActivated(cheat.id) },
+                                onClick = {
+                                    if (cheat.active) {
+                                        viewModel.onCheatDeactivated(cheat.id)
+                                    } else {
+                                        viewModel.onCheatActivated(cheat.id)
+                                    }
+                                },
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(top = 8.dp),
                             ) {
                                 Text(
                                     text = if (cheat.active) {
-                                        "${cheat.label} · activo"
+                                        "${cheat.label} · activo (apagar)"
                                     } else {
                                         cheat.label
                                     },
