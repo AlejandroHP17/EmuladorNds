@@ -211,6 +211,27 @@ fun EmuladorStartScreen(
                             },
                         )
                     }
+                    Text(
+                        text = "Trucos",
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.padding(top = 12.dp),
+                    )
+                    if (uiState.cheatMenuItems.isEmpty()) {
+                        Text(
+                            text = "Este juego no tiene trucos",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(top = 8.dp),
+                        )
+                    } else {
+                        uiState.cheatMenuItems.forEach { cheat ->
+                            Text(
+                                text = cheat.label,
+                                style = MaterialTheme.typography.bodyLarge,
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                        }
+                    }
                 }
             }
             if (uiState.showInvalidFileMessage) {

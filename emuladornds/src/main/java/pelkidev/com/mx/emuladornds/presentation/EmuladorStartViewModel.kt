@@ -18,6 +18,7 @@ import pelkidev.com.mx.emuladornds.domain.NdsFrame
 import pelkidev.com.mx.emuladornds.domain.NdsPace
 import pelkidev.com.mx.emuladornds.domain.isNdsFileName
 import pelkidev.com.mx.emuladornds.domain.patternFrame
+import pelkidev.com.mx.emuladornds.domain.preparedCheatsForNds
 import java.io.File
 
 enum class ReplaceAsk {
@@ -31,12 +32,19 @@ enum class FastForwardLevel {
     Faster,
 }
 
+data class CheatMenuItem(
+    val id: String,
+    val label: String,
+    val active: Boolean = false,
+)
+
 data class EmuladorStartUiState(
     val loadedFileName: String? = null,
     val showInvalidFileMessage: Boolean = false,
     val menuOpen: Boolean = false,
     val selectedSlot: Int = 1,
     val fastForward: FastForwardLevel = FastForwardLevel.Off,
+    val cheatMenuItems: List<CheatMenuItem> = emptyList(),
     val replaceAsk: ReplaceAsk? = null,
     val replaceLabel: String = "",
 )
@@ -71,13 +79,17 @@ class EmuladorStartViewModel(
         val pattern = patternFrame()
         _topFrame.value = pattern
         _bottomFrame.value = pattern
+        val trimmedName = fileName.trim()
         _uiState.update {
             it.copy(
-                loadedFileName = fileName.trim(),
+                loadedFileName = trimmedName,
                 showInvalidFileMessage = false,
                 menuOpen = false,
                 selectedSlot = 1,
                 fastForward = FastForwardLevel.Off,
+                cheatMenuItems = preparedCheatsForNds(trimmedName).map { cheat ->
+                    CheatMenuItem(id = cheat.id, label = cheat.displayName)
+                },
             )
         }
         val opened = try {
