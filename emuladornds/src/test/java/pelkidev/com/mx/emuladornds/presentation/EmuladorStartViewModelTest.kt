@@ -443,6 +443,72 @@ class EmuladorStartViewModelTest {
     }
 
     @Test
+    fun newSession_loadsSavedSlotAfterChoosingSameNds() {
+        val directory = createTempDirectory("nds-state").toFile()
+        val firstCores = mutableListOf<RememberingCore>()
+        val first = viewModelWithStates(directory, firstCores)
+        first.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+        firstCores[0].token = 6
+        first.onSaveState()
+
+        val secondCores = mutableListOf<RememberingCore>()
+        val second = viewModelWithStates(directory, secondCores)
+        assertNull(second.uiState.value.loadedFileName)
+        second.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+        second.onLoadState()
+
+        assertArrayEquals(byteArrayOf(6), secondCores[0].imported)
+        assertEquals(6, second.topFrame.value!!.pixel(0, 0))
+    }
+
+    @Test
+    fun newSession_multipleSlotsStillAvailable() {
+        val directory = createTempDirectory("nds-state").toFile()
+        val firstCores = mutableListOf<RememberingCore>()
+        val first = viewModelWithStates(directory, firstCores)
+        first.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+        firstCores[0].token = 1
+        first.onSaveState()
+        first.onSlotSelected(2)
+        firstCores[0].token = 2
+        first.onSaveState()
+
+        val store = NdsStateStore(directory)
+        assertTrue(store.hasSlot("juego.nds", 1))
+        assertTrue(store.hasSlot("juego.nds", 2))
+    }
+
+    @Test
+    fun newSession_twoGamesKeepTheirOwnSlots() {
+        val directory = createTempDirectory("nds-state").toFile()
+        val firstCores = mutableListOf<RememberingCore>()
+        val first = viewModelWithStates(directory, firstCores)
+        first.onFileChosen("uno.nds") { "/tmp/uno.nds" }
+        firstCores[0].token = 3
+        first.onSaveState()
+        first.onFileChosen("dos.nds") { "/tmp/dos.nds" }
+        firstCores[1].token = 5
+        first.onSaveState()
+
+        val second = viewModelWithStates(directory, mutableListOf())
+        second.onFileChosen("uno.nds") { "/tmp/uno.nds" }
+        assertTrue(NdsStateStore(directory).hasSlot("uno.nds", 1))
+        second.onFileChosen("dos.nds") { "/tmp/dos.nds" }
+        assertTrue(NdsStateStore(directory).hasSlot("dos.nds", 1))
+    }
+
+    @Test
+    fun newSession_withoutSave_loadDoesNothing() {
+        val directory = createTempDirectory("nds-state").toFile()
+        val cores = mutableListOf<RememberingCore>()
+        val viewModel = viewModelWithStates(directory, cores)
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+        viewModel.onLoadState()
+
+        assertNull(cores.single().imported)
+    }
+
+    @Test
     fun reopenedEmulator_loadsTheStateOfTheSameFile() {
         val directory = createTempDirectory("nds-state").toFile()
         val firstCores = mutableListOf<RememberingCore>()
