@@ -61,9 +61,13 @@ import pelkidev.com.mx.emuladornds.data.NdsStateStore
 @Composable
 private fun rememberEmuladorStartViewModel(): EmuladorStartViewModel {
     val context = LocalContext.current
+    val app = context.applicationContext
     return viewModel {
         EmuladorStartViewModel(
-            stateStore = NdsStateStore.open(context.applicationContext.filesDir),
+            stateStore = NdsStateStore.open(
+                app.filesDir,
+                app.getExternalFilesDir(null),
+            ),
         )
     }
 }
