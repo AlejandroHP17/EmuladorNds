@@ -2,8 +2,11 @@ package pelkidev.com.mx.emuladornds.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExecutorCoroutineDispatcher
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.asCoroutineDispatcher
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +28,7 @@ import pelkidev.com.mx.emuladornds.domain.patternFrame
 import pelkidev.com.mx.emuladornds.domain.findPreparedCheat
 import pelkidev.com.mx.emuladornds.domain.preparedCheatsForNds
 import java.io.File
+import java.util.concurrent.Executors
 
 enum class ReplaceAsk {
     Save,
@@ -75,6 +79,7 @@ class EmuladorStartViewModel(
     private val coreLock = Any()
     private var core: NdsCore? = null
     private var paceJob: Job? = null
+    private val paceDispatcher: CoroutineDispatcher by lazy { newPaceDispatcher() }
     private var heldButtons = emptySet<NdsButton>()
 
     fun onFileChosen(fileName: String, prepareRomPath: () -> String?) {
@@ -336,7 +341,8 @@ class EmuladorStartViewModel(
 
     private fun startPace() {
         paceJob?.cancel()
-        paceJob = viewModelScope.launch(Dispatchers.Default) {
+        paceJob = viewModelScope.launch(paceDispatcher) {
+            android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_URGENT_DISPLAY)
             var deadline = System.nanoTime()
             while (isActive) {
                 val speed = _uiState.value.fastForward
@@ -368,6 +374,13 @@ class EmuladorStartViewModel(
     override fun onCleared() {
         bluetoothLink.disconnect()
         stopCore()
+        (paceDispatcher as? ExecutorCoroutineDispatcher)?.close()
         super.onCleared()
     }
+}
+
+private fun newPaceDispatcher(): ExecutorCoroutineDispatcher {
+    return Executors.newSingleThreadExecutor { runnable ->
+        Thread(runnable, "nds-pace").apply { priority = Thread.MAX_PRIORITY }
+    }.asCoroutineDispatcher()
 }

@@ -42,7 +42,6 @@ fun preparedCheatsForNds(fileName: String): List<PreparedCheat> {
             ),
             experienceCheat("exp-x2", "Experiencia ×2", 2),
             experienceCheat("exp-x4", "Experiencia ×4", 4),
-            experienceCheat("exp-x10", "Experiencia ×10", 10),
             PreparedCheat(
                 id = "shiny-wild",
                 displayName = "Salvajes variocolor",
@@ -62,8 +61,6 @@ fun preparedCheatsForNds(fileName: String): List<PreparedCheat> {
                     0xD2000000, 0x00000000,
                 ),
             ),
-            wildEncounter("wild-mewtwo", "Encuentro: Mewtwo", 0x96),
-            wildEncounter("wild-arceus", "Encuentro: Arceus", 0x1ED),
         )
         else -> emptyList()
     }
@@ -72,7 +69,7 @@ fun preparedCheatsForNds(fileName: String): List<PreparedCheat> {
 fun findPreparedCheat(fileName: String, cheatId: String): PreparedCheat? =
     preparedCheatsForNds(fileName).find { it.id == cheatId }
 
-/** Experiencia USA: mantener R al cerrar el combate. Solo uno de ×2, ×4 o ×10. */
+/** Experiencia USA: mantener R al cerrar el combate. Solo uno de ×2 o ×4. */
 private fun experienceCheat(id: String, displayName: String, multiplier: Int): PreparedCheat {
     return PreparedCheat(
         id = id,
@@ -89,22 +86,6 @@ private fun experienceCheat(id: String, displayName: String, multiplier: Int): P
             0x1206FB2E, 0x00002000L or multiplier.toLong(),
             0x0206FB30, 0xE03A4345,
             0x1206FB44, 0x00008965,
-            0xD2000000, 0x00000000,
-        ),
-    )
-}
-
-/** Especie salvaje USA. El número es el de la Pokédex nacional. Solo un encuentro a la vez. */
-private fun wildEncounter(id: String, displayName: String, nationalDex: Int): PreparedCheat {
-    val species = nationalDex.toLong() and 0xFFFF
-    return PreparedCheat(
-        id = id,
-        displayName = displayName,
-        codeWords = ar(
-            0x52247D8C, 0x582000C0,
-            0x12247D8A, species,
-            0x02247D8C, 0xE0021C39,
-            0x02247D90, species,
             0xD2000000, 0x00000000,
         ),
     )

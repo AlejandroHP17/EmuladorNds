@@ -698,13 +698,14 @@ class EmuladorStartViewModelTest {
         viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
 
         val items = viewModel.uiState.value.cheatMenuItems
-        assertEquals(8, items.size)
+        assertEquals(5, items.size)
         assertTrue(items.none { it.active })
-        assertEquals("Dinero máximo", items[0].label)
         assertEquals(
-            listOf("exp-x2", "exp-x4", "exp-x10", "shiny-wild", "wild-mewtwo", "wild-arceus"),
-            items.drop(2).map { it.id },
+            listOf("max-money", "infinite-rare-candy", "exp-x2", "exp-x4", "shiny-wild"),
+            items.map { it.id },
         )
+        assertTrue(items.none { it.id == "exp-x10" || it.id == "wild-mewtwo" || it.id == "wild-arceus" })
+        assertTrue(items.none { it.label.contains("Mewtwo") || it.label.contains("Arceus") || it.label.contains("×10") })
     }
 
     @Test
@@ -740,7 +741,7 @@ class EmuladorStartViewModelTest {
     }
 
     @Test
-    fun experienceAndEncounter_replaceTheOtherOfTheSameKind() {
+    fun experienceMultipliers_replaceEachOther() {
         val viewModel = EmuladorStartViewModel(
             startCore = { FakeCore() },
             autoAdvance = false,
@@ -748,14 +749,29 @@ class EmuladorStartViewModelTest {
         viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
         viewModel.onCheatActivated("exp-x2")
         viewModel.onCheatActivated("exp-x4")
-        viewModel.onCheatActivated("wild-mewtwo")
-        viewModel.onCheatActivated("wild-arceus")
 
         val items = viewModel.uiState.value.cheatMenuItems
         assertFalse(items.single { it.id == "exp-x2" }.active)
         assertTrue(items.single { it.id == "exp-x4" }.active)
-        assertFalse(items.single { it.id == "wild-mewtwo" }.active)
-        assertTrue(items.single { it.id == "wild-arceus" }.active)
+    }
+
+    @Test
+    fun removedCheats_doNotAppearOrActivate() {
+        val cores = mutableListOf<FakeCore>()
+        val viewModel = EmuladorStartViewModel(
+            startCore = { FakeCore().also(cores::add) },
+            autoAdvance = false,
+        )
+        viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
+
+        viewModel.onCheatActivated("exp-x10")
+        viewModel.onCheatActivated("wild-mewtwo")
+        viewModel.onCheatActivated("wild-arceus")
+
+        val items = viewModel.uiState.value.cheatMenuItems
+        assertTrue(items.none { it.id in listOf("exp-x10", "wild-mewtwo", "wild-arceus") })
+        assertTrue(items.none { it.active })
+        assertTrue(cores.single().activeCheats.isEmpty())
     }
 
     @Test
@@ -836,7 +852,7 @@ class EmuladorStartViewModelTest {
         viewModel.onCheatActivated("infinite-rare-candy")
 
         val items = viewModel.uiState.value.cheatMenuItems
-        assertEquals(8, items.size)
+        assertEquals(5, items.size)
         assertEquals(2, items.count { it.active })
     }
 
