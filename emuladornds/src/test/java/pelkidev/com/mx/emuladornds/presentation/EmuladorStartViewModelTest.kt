@@ -460,6 +460,93 @@ class EmuladorStartViewModelTest {
     }
 
     @Test
+    fun withoutNds_cheatMenuIsEmpty() {
+        val viewModel = EmuladorStartViewModel(autoAdvance = false)
+
+        assertNull(viewModel.uiState.value.loadedFileName)
+        assertTrue(viewModel.uiState.value.cheatMenuItems.isEmpty())
+    }
+
+    @Test
+    fun genericNds_hasNoPreparedCheats() {
+        val viewModel = EmuladorStartViewModel(
+            startCore = { FakeCore() },
+            autoAdvance = false,
+        )
+
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+
+        assertTrue(viewModel.uiState.value.cheatMenuItems.isEmpty())
+    }
+
+    @Test
+    fun heartGold_listsPreparedCheatsInactive() {
+        val viewModel = EmuladorStartViewModel(
+            startCore = { FakeCore() },
+            autoAdvance = false,
+        )
+
+        viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
+
+        val items = viewModel.uiState.value.cheatMenuItems
+        assertEquals(2, items.size)
+        assertTrue(items.none { it.active })
+        assertEquals("Dinero máximo", items[0].label)
+    }
+
+    @Test
+    fun activatingCheat_appliesToCoreAndMarksActive() {
+        val cores = mutableListOf<FakeCore>()
+        val viewModel = EmuladorStartViewModel(
+            startCore = { FakeCore().also(cores::add) },
+            autoAdvance = false,
+        )
+        viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
+
+        viewModel.onCheatActivated("max-money")
+
+        assertTrue(viewModel.uiState.value.cheatMenuItems.single { it.id == "max-money" }.active)
+        assertTrue(cores.single().activeCheat.isNotEmpty())
+    }
+
+    @Test
+    fun secondCheat_doesNotActivateWhileFirstIsOn() {
+        val cores = mutableListOf<FakeCore>()
+        val viewModel = EmuladorStartViewModel(
+            startCore = { FakeCore().also(cores::add) },
+            autoAdvance = false,
+        )
+        viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
+        viewModel.onCheatActivated("max-money")
+        val applied = cores.single().activeCheat.copyOf()
+
+        viewModel.onCheatActivated("infinite-rare-candy")
+
+        assertTrue(viewModel.uiState.value.cheatMenuItems.single { it.id == "max-money" }.active)
+        assertFalse(viewModel.uiState.value.cheatMenuItems.single { it.id == "infinite-rare-candy" }.active)
+        assertArrayEquals(applied, cores.single().activeCheat)
+    }
+
+    @Test
+    fun newRom_clearsActiveCheatAndReloadsList() {
+        val cores = mutableListOf<FakeCore>()
+        val viewModel = EmuladorStartViewModel(
+            startCore = { FakeCore().also(cores::add) },
+            autoAdvance = false,
+        )
+        viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
+        viewModel.onCheatActivated("max-money")
+
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+
+        assertTrue(viewModel.uiState.value.cheatMenuItems.isEmpty())
+        assertTrue(viewModel.uiState.value.cheatMenuItems.none { it.active })
+        assertEquals(2, cores.size)
+        assertTrue(cores[0].closed)
+        assertTrue(cores[1].activeCheat.isEmpty())
+    }
+
+    @Test
     fun newRom_startsWithEmptyHold() {
         val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
@@ -528,6 +615,12 @@ class EmuladorStartViewModelTest {
             private set
         var held: Set<NdsButton> = emptySet()
             private set
+        var activeCheat: IntArray = intArrayOf()
+            private set
+
+        override fun setActiveCheat(codeWords: IntArray) {
+            activeCheat = codeWords.copyOf()
+        }
 
         override fun step(): Pair<NdsFrame, NdsFrame> {
             val pixels = IntArray(NdsFrame.WIDTH * NdsFrame.HEIGHT) { KNOWN_PIXEL }
