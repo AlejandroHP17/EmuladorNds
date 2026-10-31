@@ -163,6 +163,7 @@ class EmuladorStartViewModel(
         val fileName = _uiState.value.loadedFileName ?: return
         val items = _uiState.value.cheatMenuItems
         if (items.none { it.id == cheatId && it.active }) return
+        settleCheatEffects()
         val updated = items.map { item ->
             if (item.id == cheatId) item.copy(active = false) else item
         }
@@ -258,8 +259,19 @@ class EmuladorStartViewModel(
         val name = _uiState.value.loadedFileName ?: return
         val store = stateStore ?: return
         val slot = _uiState.value.selectedSlot
+        val codes = activeCheatCodes(name)
         val bytes = synchronized(coreLock) {
-            core?.exportState()
+            val running = core ?: return
+            if (codes.isEmpty()) {
+                running.exportState()
+            } else {
+                settleCheatEffectsLocked(running)
+                running.setActiveCheats(emptyList())
+                val saved = running.exportState()
+                running.hold(heldButtons)
+                running.setActiveCheats(codes)
+                saved
+            }
         } ?: return
         store.writeSlot(name, slot, bytes)
     }
@@ -287,10 +299,35 @@ class EmuladorStartViewModel(
         val frames = synchronized(coreLock) {
             val running = core ?: return
             if (!running.importState(payload)) return
+            running.setActiveCheats(emptyList())
             running.step()
+        }
+        _uiState.update { state ->
+            state.copy(cheatMenuItems = state.cheatMenuItems.map { it.copy(active = false) })
         }
         _topFrame.value = frames.first
         _bottomFrame.value = frames.second
+    }
+
+    private fun activeCheatCodes(fileName: String): List<IntArray> {
+        return _uiState.value.cheatMenuItems.filter { it.active }.mapNotNull { item ->
+            findPreparedCheat(fileName, item.id)?.codeWords
+        }
+    }
+
+    /** Un cuadro con los botones sueltos, para que el truco ejecute su rama de apagado. */
+    private fun settleCheatEffects() {
+        synchronized(coreLock) {
+            val running = core ?: return
+            settleCheatEffectsLocked(running)
+            running.hold(heldButtons)
+        }
+    }
+
+    private fun settleCheatEffectsLocked(running: NdsCore) {
+        running.hold(emptySet())
+        running.releaseTouch()
+        running.step()
     }
 
     fun onControlChanged(button: NdsButton, held: Boolean) {

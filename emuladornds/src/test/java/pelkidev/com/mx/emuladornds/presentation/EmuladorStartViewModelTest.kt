@@ -907,6 +907,30 @@ class EmuladorStartViewModelTest {
         assertEquals(emptySet<NdsButton>(), cores[1].held)
     }
 
+    @Test
+    fun save_writesTheGameWithoutCheats_andLoadStartsClean() {
+        val directory = createTempDirectory("nds-clean-save").toFile()
+        val cores = mutableListOf<RememberingCore>()
+        val viewModel = viewModelWithStates(directory, cores)
+        viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
+        viewModel.onCheatActivated("max-money")
+        viewModel.onControlChanged(NdsButton.A, true)
+        cores[0].token = 4
+
+        viewModel.onSaveState()
+
+        assertFalse(cores[0].exportedWithCheats)
+        assertEquals(setOf(NdsButton.A), cores[0].held)
+        assertTrue(viewModel.uiState.value.cheatMenuItems.single { it.id == "max-money" }.active)
+        assertTrue(cores[0].activeCheats.isNotEmpty())
+        assertArrayEquals(byteArrayOf(4), File(directory, "Pokemon HeartGold.nds").readBytes())
+
+        viewModel.onLoadState()
+
+        assertTrue(viewModel.uiState.value.cheatMenuItems.none { it.active })
+        assertTrue(cores[0].activeCheats.isEmpty())
+    }
+
     private fun viewModelWithStates(
         directory: File,
         cores: MutableList<RememberingCore>,
@@ -940,7 +964,19 @@ class EmuladorStartViewModelTest {
             held = buttons
         }
 
-        override fun exportState(): ByteArray = byteArrayOf(token)
+        var activeCheats: List<IntArray> = emptyList()
+            private set
+        var exportedWithCheats = false
+            private set
+
+        override fun setActiveCheats(cheatCodes: List<IntArray>) {
+            activeCheats = cheatCodes.map { it.copyOf() }
+        }
+
+        override fun exportState(): ByteArray {
+            if (activeCheats.isNotEmpty()) exportedWithCheats = true
+            return byteArrayOf(token)
+        }
 
         override fun importState(state: ByteArray): Boolean {
             if (state.isEmpty()) return false

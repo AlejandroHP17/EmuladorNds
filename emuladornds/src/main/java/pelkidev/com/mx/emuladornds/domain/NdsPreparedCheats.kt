@@ -26,20 +26,6 @@ fun preparedCheatsForNds(fileName: String): List<PreparedCheat> {
                     0x00000000,
                 ),
             ),
-            PreparedCheat(
-                id = "infinite-rare-candy",
-                displayName = "Carameloraro infinito",
-                codeWords = intArrayOf(
-                    0x94000130.toInt(),
-                    0xFCFF0000.toInt(),
-                    0xB2108868.toInt(),
-                    0x00000000,
-                    0x00009098,
-                    0x00000063,
-                    0xD2000000.toInt(),
-                    0x00000000,
-                ),
-            ),
             experienceCheat("exp-x2", "Experiencia ×2", 2),
             experienceCheat("exp-x4", "Experiencia ×4", 4),
             PreparedCheat(
