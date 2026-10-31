@@ -506,11 +506,11 @@ class EmuladorStartViewModelTest {
         viewModel.onCheatActivated("max-money")
 
         assertTrue(viewModel.uiState.value.cheatMenuItems.single { it.id == "max-money" }.active)
-        assertTrue(cores.single().activeCheat.isNotEmpty())
+        assertEquals(1, cores.single().activeCheats.size)
     }
 
     @Test
-    fun secondCheat_doesNotActivateWhileFirstIsOn() {
+    fun secondCheat_staysActiveWithFirst() {
         val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
             startCore = { FakeCore().also(cores::add) },
@@ -518,13 +518,12 @@ class EmuladorStartViewModelTest {
         )
         viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
         viewModel.onCheatActivated("max-money")
-        val applied = cores.single().activeCheat.copyOf()
 
         viewModel.onCheatActivated("infinite-rare-candy")
 
         assertTrue(viewModel.uiState.value.cheatMenuItems.single { it.id == "max-money" }.active)
-        assertFalse(viewModel.uiState.value.cheatMenuItems.single { it.id == "infinite-rare-candy" }.active)
-        assertArrayEquals(applied, cores.single().activeCheat)
+        assertTrue(viewModel.uiState.value.cheatMenuItems.single { it.id == "infinite-rare-candy" }.active)
+        assertEquals(2, cores.single().activeCheats.size)
     }
 
     @Test
@@ -540,7 +539,7 @@ class EmuladorStartViewModelTest {
         viewModel.onCheatDeactivated("max-money")
 
         assertTrue(viewModel.uiState.value.cheatMenuItems.none { it.active })
-        assertTrue(cores.single().activeCheat.isEmpty())
+        assertTrue(cores.single().activeCheats.isEmpty())
     }
 
     @Test
@@ -558,21 +557,25 @@ class EmuladorStartViewModelTest {
         viewModel.onConsoleTick()
 
         assertTrue(viewModel.uiState.value.cheatMenuItems.none { it.active })
-        assertTrue(cores.single().activeCheat.isEmpty())
+        assertTrue(cores.single().activeCheats.isEmpty())
     }
 
     @Test
-    fun deactivatingOne_leavesOtherCheatsInactive() {
+    fun deactivatingOne_leavesOtherCheatsActive() {
+        val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
-            startCore = { FakeCore() },
+            startCore = { FakeCore().also(cores::add) },
             autoAdvance = false,
         )
         viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
         viewModel.onCheatActivated("max-money")
+        viewModel.onCheatActivated("infinite-rare-candy")
 
         viewModel.onCheatDeactivated("max-money")
 
-        assertFalse(viewModel.uiState.value.cheatMenuItems.single { it.id == "infinite-rare-candy" }.active)
+        assertFalse(viewModel.uiState.value.cheatMenuItems.single { it.id == "max-money" }.active)
+        assertTrue(viewModel.uiState.value.cheatMenuItems.single { it.id == "infinite-rare-candy" }.active)
+        assertEquals(1, cores.single().activeCheats.size)
     }
 
     @Test
@@ -587,7 +590,7 @@ class EmuladorStartViewModelTest {
         viewModel.onCheatDeactivated("max-money")
 
         assertTrue(viewModel.uiState.value.cheatMenuItems.none { it.active })
-        assertTrue(cores.single().activeCheat.isEmpty())
+        assertTrue(cores.single().activeCheats.isEmpty())
     }
 
     @Test
@@ -606,7 +609,7 @@ class EmuladorStartViewModelTest {
         assertTrue(viewModel.uiState.value.cheatMenuItems.none { it.active })
         assertEquals(2, cores.size)
         assertTrue(cores[0].closed)
-        assertTrue(cores[1].activeCheat.isEmpty())
+        assertTrue(cores[1].activeCheats.isEmpty())
     }
 
     @Test
@@ -678,11 +681,11 @@ class EmuladorStartViewModelTest {
             private set
         var held: Set<NdsButton> = emptySet()
             private set
-        var activeCheat: IntArray = intArrayOf()
+        var activeCheats: List<IntArray> = emptyList()
             private set
 
-        override fun setActiveCheat(codeWords: IntArray) {
-            activeCheat = codeWords.copyOf()
+        override fun setActiveCheats(cheatCodes: List<IntArray>) {
+            activeCheats = cheatCodes.map { it.copyOf() }
         }
 
         override fun step(): Pair<NdsFrame, NdsFrame> {

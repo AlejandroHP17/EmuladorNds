@@ -253,32 +253,43 @@ Java_pelkidev_com_mx_emuladornds_data_MelonDsCore_nativeSetActiveCheats(
         JNIEnv* env,
         jobject /* thiz */,
         jlong handle,
-        jintArray codeWords) {
+        jobjectArray cheatCodes) {
     auto* machine = reinterpret_cast<Machine*>(handle);
     if (machine == nullptr || machine->nds == nullptr) {
         return;
     }
     machine->nds->AREngine.Cheats.clear();
-    if (codeWords == nullptr) {
+    if (cheatCodes == nullptr) {
         return;
     }
-    const jsize length = env->GetArrayLength(codeWords);
-    if (length <= 0) {
-        return;
+    const jsize cheatCount = env->GetArrayLength(cheatCodes);
+    for (jsize cheatIndex = 0; cheatIndex < cheatCount; ++cheatIndex) {
+        auto* codeWords = reinterpret_cast<jintArray>(
+                env->GetObjectArrayElement(cheatCodes, cheatIndex));
+        if (codeWords == nullptr) {
+            continue;
+        }
+        const jsize length = env->GetArrayLength(codeWords);
+        if (length <= 0) {
+            env->DeleteLocalRef(codeWords);
+            continue;
+        }
+        jint* elements = env->GetIntArrayElements(codeWords, nullptr);
+        if (elements == nullptr) {
+            env->DeleteLocalRef(codeWords);
+            continue;
+        }
+        melonDS::ARCode cheat;
+        cheat.Name = "prepared";
+        cheat.Enabled = true;
+        cheat.Code.resize(static_cast<size_t>(length));
+        for (jsize i = 0; i < length; ++i) {
+            cheat.Code[static_cast<size_t>(i)] = static_cast<melonDS::u32>(elements[i]);
+        }
+        env->ReleaseIntArrayElements(codeWords, elements, JNI_ABORT);
+        env->DeleteLocalRef(codeWords);
+        machine->nds->AREngine.Cheats.push_back(cheat);
     }
-    jint* elements = env->GetIntArrayElements(codeWords, nullptr);
-    if (elements == nullptr) {
-        return;
-    }
-    melonDS::ARCode cheat;
-    cheat.Name = "prepared";
-    cheat.Enabled = true;
-    cheat.Code.resize(static_cast<size_t>(length));
-    for (jsize i = 0; i < length; ++i) {
-        cheat.Code[static_cast<size_t>(i)] = static_cast<melonDS::u32>(elements[i]);
-    }
-    env->ReleaseIntArrayElements(codeWords, elements, JNI_ABORT);
-    machine->nds->AREngine.Cheats.push_back(cheat);
 }
 
 extern "C" JNIEXPORT void JNICALL

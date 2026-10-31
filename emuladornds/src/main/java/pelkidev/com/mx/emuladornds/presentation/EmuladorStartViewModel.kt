@@ -101,7 +101,7 @@ class EmuladorStartViewModel(
         synchronized(coreLock) {
             opened.hold(emptySet())
             opened.releaseTouch()
-            opened.setActiveCheat(intArrayOf())
+            opened.setActiveCheats(emptyList())
             core = opened
         }
         if (autoAdvance) {
@@ -118,32 +118,32 @@ class EmuladorStartViewModel(
         val fileName = _uiState.value.loadedFileName ?: return
         val items = _uiState.value.cheatMenuItems
         if (items.none { it.id == cheatId }) return
-        if (items.any { it.active }) return
-        val cheat = findPreparedCheat(fileName, cheatId) ?: return
-        synchronized(coreLock) {
-            core?.setActiveCheat(cheat.codeWords)
+        if (items.any { it.id == cheatId && it.active }) return
+        if (findPreparedCheat(fileName, cheatId) == null) return
+        val updated = items.map { item ->
+            if (item.id == cheatId) item.copy(active = true) else item
         }
-        _uiState.update {
-            it.copy(
-                cheatMenuItems = items.map { item ->
-                    item.copy(active = item.id == cheatId)
-                },
-            )
-        }
+        _uiState.update { it.copy(cheatMenuItems = updated) }
+        pushActiveCheatsToCore(fileName, updated)
     }
 
     fun onCheatDeactivated(cheatId: String) {
+        val fileName = _uiState.value.loadedFileName ?: return
         val items = _uiState.value.cheatMenuItems
         if (items.none { it.id == cheatId && it.active }) return
-        synchronized(coreLock) {
-            core?.setActiveCheat(intArrayOf())
+        val updated = items.map { item ->
+            if (item.id == cheatId) item.copy(active = false) else item
         }
-        _uiState.update {
-            it.copy(
-                cheatMenuItems = items.map { item ->
-                    item.copy(active = false)
-                },
-            )
+        _uiState.update { it.copy(cheatMenuItems = updated) }
+        pushActiveCheatsToCore(fileName, updated)
+    }
+
+    private fun pushActiveCheatsToCore(fileName: String, items: List<CheatMenuItem>) {
+        val codes = items.filter { it.active }.mapNotNull { item ->
+            findPreparedCheat(fileName, item.id)?.codeWords
+        }
+        synchronized(coreLock) {
+            core?.setActiveCheats(codes)
         }
     }
 
