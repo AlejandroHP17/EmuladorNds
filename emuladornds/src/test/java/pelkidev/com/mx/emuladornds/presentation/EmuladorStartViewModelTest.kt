@@ -13,6 +13,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import pelkidev.com.mx.emuladornds.data.NdsButton
 import pelkidev.com.mx.emuladornds.data.NdsCore
+import pelkidev.com.mx.emuladornds.data.NdsStateStore
 import pelkidev.com.mx.emuladornds.domain.NdsFrame
 
 class EmuladorStartViewModelTest {
@@ -666,7 +667,7 @@ class EmuladorStartViewModelTest {
         EmuladorStartViewModel(
             startCore = { RememberingCore().also(cores::add) },
             autoAdvance = false,
-            stateDirectory = directory,
+            stateStore = NdsStateStore(directory),
         )
 
     private class RememberingCore : NdsCore {

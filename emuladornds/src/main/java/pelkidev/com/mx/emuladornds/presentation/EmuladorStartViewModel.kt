@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 import pelkidev.com.mx.emuladornds.data.MelonDsCore
 import pelkidev.com.mx.emuladornds.data.NdsButton
 import pelkidev.com.mx.emuladornds.data.NdsCore
+import pelkidev.com.mx.emuladornds.data.NdsStateStore
 import pelkidev.com.mx.emuladornds.domain.NdsFrame
 import pelkidev.com.mx.emuladornds.domain.NdsPace
 import pelkidev.com.mx.emuladornds.domain.isNdsFileName
@@ -53,7 +54,7 @@ data class EmuladorStartUiState(
 class EmuladorStartViewModel(
     private val startCore: (String) -> NdsCore = ::MelonDsCore,
     private val autoAdvance: Boolean = true,
-    private val stateDirectory: File? = null,
+    private val stateStore: NdsStateStore? = null,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(EmuladorStartUiState())
     val uiState: StateFlow<EmuladorStartUiState> = _uiState.asStateFlow()
@@ -217,14 +218,12 @@ class EmuladorStartViewModel(
 
     private fun writeSelectedState() {
         val name = _uiState.value.loadedFileName ?: return
-        val directory = stateDirectory ?: return
+        val store = stateStore ?: return
         val slot = _uiState.value.selectedSlot
         val bytes = synchronized(coreLock) {
             core?.exportState()
         } ?: return
-        if (bytes.isEmpty()) return
-        directory.mkdirs()
-        stateFile(directory, name, slot).writeBytes(bytes)
+        store.writeSlot(name, slot, bytes)
     }
 
     private fun askIfReplacing(ask: ReplaceAsk): Boolean {
@@ -239,16 +238,14 @@ class EmuladorStartViewModel(
 
     private fun slotHasState(): Boolean {
         val name = _uiState.value.loadedFileName ?: return false
-        val directory = stateDirectory ?: return false
-        return stateFile(directory, name, _uiState.value.selectedSlot).isFile
+        val store = stateStore ?: return false
+        return store.hasSlot(name, _uiState.value.selectedSlot)
     }
 
     fun onLoadState() {
         val name = _uiState.value.loadedFileName ?: return
-        val directory = stateDirectory ?: return
-        val file = stateFile(directory, name, _uiState.value.selectedSlot)
-        if (!file.isFile) return
-        val payload = file.readBytes()
+        val store = stateStore ?: return
+        val payload = store.readSlot(name, _uiState.value.selectedSlot) ?: return
         val frames = synchronized(coreLock) {
             val running = core ?: return
             if (!running.importState(payload)) return
@@ -338,13 +335,5 @@ class EmuladorStartViewModel(
     override fun onCleared() {
         stopCore()
         super.onCleared()
-    }
-
-    private companion object {
-        fun stateFile(directory: File, name: String, slot: Int = 1): File {
-            val safe = name.replace("/", "_").replace("\\", "_")
-            val fileName = if (slot == 1) safe else "$safe.$slot"
-            return File(directory, fileName)
-        }
     }
 }

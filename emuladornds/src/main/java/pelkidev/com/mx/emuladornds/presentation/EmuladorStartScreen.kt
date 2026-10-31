@@ -56,13 +56,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.io.File
 import pelkidev.com.mx.emuladornds.data.NdsButton
+import pelkidev.com.mx.emuladornds.data.NdsStateStore
 
 @Composable
 private fun rememberEmuladorStartViewModel(): EmuladorStartViewModel {
     val context = LocalContext.current
     return viewModel {
         EmuladorStartViewModel(
-            stateDirectory = File(context.applicationContext.filesDir, "emuladornds-states"),
+            stateStore = NdsStateStore.open(context.applicationContext.filesDir),
         )
     }
 }
