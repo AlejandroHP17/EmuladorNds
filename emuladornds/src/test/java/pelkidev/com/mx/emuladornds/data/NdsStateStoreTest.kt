@@ -57,4 +57,33 @@ class NdsStateStoreTest {
         assertFalse(store.hasSlot("juego.nds", 1))
         assertNull(store.readSlot("juego.nds", 1))
     }
+
+    @Test
+    fun slotReadableFromBackupWhenPrimaryMissing() {
+        val primary = createTempDirectory("nds-primary").toFile()
+        val backup = createTempDirectory("nds-backup").toFile()
+        NdsStateStore(primary, backup).writeSlot("juego.nds", 1, byteArrayOf(4, 5))
+        primary.listFiles()?.forEach { it.delete() }
+
+        val afterReinstall = NdsStateStore(primary, backup)
+
+        assertTrue(afterReinstall.hasSlot("juego.nds", 1))
+        assertArrayEquals(byteArrayOf(4, 5), afterReinstall.readSlot("juego.nds", 1))
+        assertTrue(primary.resolve("juego.nds").isFile)
+    }
+
+    @Test
+    fun multipleSlots_onBackupWhenPrimaryCleared() {
+        val primary = createTempDirectory("nds-primary").toFile()
+        val backup = createTempDirectory("nds-backup").toFile()
+        val store = NdsStateStore(primary, backup)
+        store.writeSlot("juego.nds", 1, byteArrayOf(1))
+        store.writeSlot("juego.nds", 2, byteArrayOf(2))
+        primary.listFiles()?.forEach { it.delete() }
+
+        val afterReinstall = NdsStateStore(primary, backup)
+
+        assertTrue(afterReinstall.hasSlot("juego.nds", 1))
+        assertTrue(afterReinstall.hasSlot("juego.nds", 2))
+    }
 }
