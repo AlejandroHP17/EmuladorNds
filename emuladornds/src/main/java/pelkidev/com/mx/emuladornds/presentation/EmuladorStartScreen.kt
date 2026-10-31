@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import java.io.File
+import pelkidev.com.mx.emuladornds.data.AndroidNdsBluetoothLink
 import pelkidev.com.mx.emuladornds.data.NdsButton
 import pelkidev.com.mx.emuladornds.data.NdsStateStore
 
@@ -62,12 +63,17 @@ import pelkidev.com.mx.emuladornds.data.NdsStateStore
 private fun rememberEmuladorStartViewModel(): EmuladorStartViewModel {
     val context = LocalContext.current
     val app = context.applicationContext
+    val bluetoothLink = remember { AndroidNdsBluetoothLink(app) }
+    DisposableEffect(bluetoothLink) {
+        onDispose { bluetoothLink.shutdown() }
+    }
     return viewModel {
         EmuladorStartViewModel(
             stateStore = NdsStateStore.open(
                 app.filesDir,
                 app.getExternalFilesDir(null),
             ),
+            bluetoothLink = bluetoothLink,
         )
     }
 }

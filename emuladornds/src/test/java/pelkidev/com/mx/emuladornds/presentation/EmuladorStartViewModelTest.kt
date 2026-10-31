@@ -14,6 +14,7 @@ import org.junit.Test
 import pelkidev.com.mx.emuladornds.data.NdsButton
 import pelkidev.com.mx.emuladornds.data.NdsCore
 import pelkidev.com.mx.emuladornds.data.NdsStateStore
+import pelkidev.com.mx.emuladornds.data.PairingNdsBluetoothLink
 import pelkidev.com.mx.emuladornds.domain.NdsFrame
 
 class EmuladorStartViewModelTest {
@@ -600,6 +601,37 @@ class EmuladorStartViewModelTest {
     }
 
     @Test
+    fun pairingLink_sameNdsFile_linksBothPeers() {
+        val first = PairingNdsBluetoothLink()
+        val second = PairingNdsBluetoothLink()
+
+        first.connect("juego.nds")
+        assertFalse(first.linked)
+        second.connect("juego.nds")
+
+        assertTrue(first.linked)
+        assertTrue(second.linked)
+    }
+
+    @Test
+    fun viewModel_showsLinkedWhenPeerJoinsSameNds() {
+        val link = PairingNdsBluetoothLink()
+        val peer = PairingNdsBluetoothLink()
+        val cores = mutableListOf<FakeCore>()
+        val viewModel = EmuladorStartViewModel(
+            startCore = { FakeCore().also(cores::add) },
+            autoAdvance = false,
+            bluetoothLink = link,
+        )
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+        link.connect("juego.nds")
+        peer.connect("juego.nds")
+        viewModel.refreshBluetoothLinkState()
+
+        assertTrue(viewModel.uiState.value.bluetoothLinked)
+    }
+
+    @Test
     fun afterReinstallFromBuild_loadsFromBackupWhenInternalStorageCleared() {
         val primary = createTempDirectory("nds-primary").toFile()
         val backup = createTempDirectory("nds-backup").toFile()
@@ -666,9 +698,13 @@ class EmuladorStartViewModelTest {
         viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
 
         val items = viewModel.uiState.value.cheatMenuItems
-        assertEquals(2, items.size)
+        assertEquals(8, items.size)
         assertTrue(items.none { it.active })
         assertEquals("Dinero máximo", items[0].label)
+        assertEquals(
+            listOf("exp-x2", "exp-x4", "exp-x10", "shiny-wild", "wild-mewtwo", "wild-arceus"),
+            items.drop(2).map { it.id },
+        )
     }
 
     @Test
@@ -701,6 +737,25 @@ class EmuladorStartViewModelTest {
         assertTrue(viewModel.uiState.value.cheatMenuItems.single { it.id == "max-money" }.active)
         assertTrue(viewModel.uiState.value.cheatMenuItems.single { it.id == "infinite-rare-candy" }.active)
         assertEquals(2, cores.single().activeCheats.size)
+    }
+
+    @Test
+    fun experienceAndEncounter_replaceTheOtherOfTheSameKind() {
+        val viewModel = EmuladorStartViewModel(
+            startCore = { FakeCore() },
+            autoAdvance = false,
+        )
+        viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
+        viewModel.onCheatActivated("exp-x2")
+        viewModel.onCheatActivated("exp-x4")
+        viewModel.onCheatActivated("wild-mewtwo")
+        viewModel.onCheatActivated("wild-arceus")
+
+        val items = viewModel.uiState.value.cheatMenuItems
+        assertFalse(items.single { it.id == "exp-x2" }.active)
+        assertTrue(items.single { it.id == "exp-x4" }.active)
+        assertFalse(items.single { it.id == "wild-mewtwo" }.active)
+        assertTrue(items.single { it.id == "wild-arceus" }.active)
     }
 
     @Test
@@ -781,7 +836,7 @@ class EmuladorStartViewModelTest {
         viewModel.onCheatActivated("infinite-rare-candy")
 
         val items = viewModel.uiState.value.cheatMenuItems
-        assertEquals(2, items.size)
+        assertEquals(8, items.size)
         assertEquals(2, items.count { it.active })
     }
 

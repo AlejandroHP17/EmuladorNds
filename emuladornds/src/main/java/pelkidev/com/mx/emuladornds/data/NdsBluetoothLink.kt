@@ -19,3 +19,38 @@ object NoOpNdsBluetoothLink : NdsBluetoothLink {
 
     override fun disconnect() = Unit
 }
+
+/**
+ * Enlace en memoria para tests: dos instancias con el mismo [matchingGameId] quedan enlazadas.
+ */
+class PairingNdsBluetoothLink : NdsBluetoothLink {
+    private val linkedFlag = java.util.concurrent.atomic.AtomicBoolean(false)
+    override val linked: Boolean
+        get() = linkedFlag.get()
+
+    override fun connect(matchingGameId: String) {
+        val gameId = matchingGameId.trim()
+        if (gameId.isEmpty()) return
+        synchronized(waitQueue) {
+            val waiting = waitQueue[gameId]
+            if (waiting == null) {
+                waitQueue[gameId] = this
+                return
+            }
+            waitQueue.remove(gameId)
+            waiting.linkedFlag.set(true)
+            linkedFlag.set(true)
+        }
+    }
+
+    override fun disconnect() {
+        synchronized(waitQueue) {
+            waitQueue.entries.removeIf { it.value === this }
+            linkedFlag.set(false)
+        }
+    }
+
+    companion object {
+        private val waitQueue = mutableMapOf<String, PairingNdsBluetoothLink>()
+    }
+}

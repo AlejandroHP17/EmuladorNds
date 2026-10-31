@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import pelkidev.com.mx.emuladornds.data.AndroidNdsBluetoothLink
 import pelkidev.com.mx.emuladornds.data.MelonDsCore
 import pelkidev.com.mx.emuladornds.data.NdsBluetoothLink
 import pelkidev.com.mx.emuladornds.data.NdsButton
@@ -125,7 +126,14 @@ class EmuladorStartViewModel(
 
     fun onBluetoothConnect() {
         val gameId = _uiState.value.loadedFileName?.trim()?.takeIf { it.isNotEmpty() } ?: return
-        bluetoothLink.connect(gameId)
+        viewModelScope.launch(Dispatchers.IO) {
+            bluetoothLink.connect(gameId)
+            (bluetoothLink as? AndroidNdsBluetoothLink)?.awaitConnection()
+            _uiState.update { it.copy(bluetoothLinked = bluetoothLink.linked) }
+        }
+    }
+
+    internal fun refreshBluetoothLinkState() {
         _uiState.update { it.copy(bluetoothLinked = bluetoothLink.linked) }
     }
 
@@ -136,7 +144,11 @@ class EmuladorStartViewModel(
         if (items.any { it.id == cheatId && it.active }) return
         if (findPreparedCheat(fileName, cheatId) == null) return
         val updated = items.map { item ->
-            if (item.id == cheatId) item.copy(active = true) else item
+            when {
+                item.id == cheatId -> item.copy(active = true)
+                exclusiveWith(item.id, cheatId) -> item.copy(active = false)
+                else -> item
+            }
         }
         _uiState.update { it.copy(cheatMenuItems = updated) }
         pushActiveCheatsToCore(fileName, updated)
@@ -151,6 +163,12 @@ class EmuladorStartViewModel(
         }
         _uiState.update { it.copy(cheatMenuItems = updated) }
         pushActiveCheatsToCore(fileName, updated)
+    }
+
+    private fun exclusiveWith(currentId: String, activatedId: String): Boolean {
+        if (currentId == activatedId) return false
+        return (currentId.startsWith("exp-") && activatedId.startsWith("exp-")) ||
+            (currentId.startsWith("wild-") && activatedId.startsWith("wild-"))
     }
 
     private fun pushActiveCheatsToCore(fileName: String, items: List<CheatMenuItem>) {
@@ -348,6 +366,7 @@ class EmuladorStartViewModel(
     }
 
     override fun onCleared() {
+        bluetoothLink.disconnect()
         stopCore()
         super.onCleared()
     }
