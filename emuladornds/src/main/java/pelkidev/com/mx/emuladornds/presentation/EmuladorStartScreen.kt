@@ -216,6 +216,30 @@ fun EmuladorStartScreen(
                             },
                         )
                     }
+                    if (uiState.bluetoothConnectVisible) {
+                        Text(
+                            text = "Bluetooth",
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.padding(top = 12.dp),
+                        )
+                        if (uiState.bluetoothLinked) {
+                            Text(
+                                text = "Conectado con otro teléfono",
+                                style = MaterialTheme.typography.bodyMedium,
+                                modifier = Modifier.padding(top = 8.dp),
+                            )
+                        } else {
+                            Button(
+                                onClick = viewModel::onBluetoothConnect,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = 8.dp),
+                            ) {
+                                Text(text = "Conectar")
+                            }
+                        }
+                    }
                     Text(
                         text = "Trucos",
                         style = MaterialTheme.typography.titleMedium,

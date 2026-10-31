@@ -12,8 +12,10 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import pelkidev.com.mx.emuladornds.data.MelonDsCore
+import pelkidev.com.mx.emuladornds.data.NdsBluetoothLink
 import pelkidev.com.mx.emuladornds.data.NdsButton
 import pelkidev.com.mx.emuladornds.data.NdsCore
+import pelkidev.com.mx.emuladornds.data.NoOpNdsBluetoothLink
 import pelkidev.com.mx.emuladornds.data.NdsStateStore
 import pelkidev.com.mx.emuladornds.domain.NdsFrame
 import pelkidev.com.mx.emuladornds.domain.NdsPace
@@ -49,12 +51,16 @@ data class EmuladorStartUiState(
     val cheatMenuItems: List<CheatMenuItem> = emptyList(),
     val replaceAsk: ReplaceAsk? = null,
     val replaceLabel: String = "",
-)
+    val bluetoothLinked: Boolean = false,
+) {
+    val bluetoothConnectVisible: Boolean get() = loadedFileName != null
+}
 
 class EmuladorStartViewModel(
     private val startCore: (String) -> NdsCore = ::MelonDsCore,
     private val autoAdvance: Boolean = true,
     private val stateStore: NdsStateStore? = null,
+    private val bluetoothLink: NdsBluetoothLink = NoOpNdsBluetoothLink,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(EmuladorStartUiState())
     val uiState: StateFlow<EmuladorStartUiState> = _uiState.asStateFlow()
@@ -77,6 +83,7 @@ class EmuladorStartViewModel(
         }
         val romPath = prepareRomPath() ?: return
         stopCore()
+        bluetoothLink.disconnect()
         heldButtons = emptySet()
         val pattern = patternFrame()
         _topFrame.value = pattern
@@ -92,6 +99,7 @@ class EmuladorStartViewModel(
                 cheatMenuItems = preparedCheatsForNds(trimmedName).map { cheat ->
                     CheatMenuItem(id = cheat.id, label = cheat.displayName)
                 },
+                bluetoothLinked = false,
             )
         }
         val opened = try {
@@ -113,6 +121,12 @@ class EmuladorStartViewModel(
     fun onMenuToggled() {
         if (_uiState.value.loadedFileName == null) return
         _uiState.update { it.copy(menuOpen = !it.menuOpen) }
+    }
+
+    fun onBluetoothConnect() {
+        val gameId = _uiState.value.loadedFileName?.trim()?.takeIf { it.isNotEmpty() } ?: return
+        bluetoothLink.connect(gameId)
+        _uiState.update { it.copy(bluetoothLinked = bluetoothLink.linked) }
     }
 
     fun onCheatActivated(cheatId: String) {
@@ -209,6 +223,7 @@ class EmuladorStartViewModel(
 
     private fun finishLeave(writeState: Boolean) {
         if (writeState) writeSelectedState()
+        bluetoothLink.disconnect()
         stopCore()
         heldButtons = emptySet()
         _topFrame.value = null

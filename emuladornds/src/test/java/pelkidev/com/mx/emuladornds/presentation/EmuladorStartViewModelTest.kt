@@ -577,6 +577,29 @@ class EmuladorStartViewModelTest {
     }
 
     @Test
+    fun withoutLoadedNds_bluetoothConnectNotOffered() {
+        val viewModel = EmuladorStartViewModel(autoAdvance = false)
+
+        assertFalse(viewModel.uiState.value.bluetoothConnectVisible)
+        viewModel.onBluetoothConnect()
+
+        assertFalse(viewModel.uiState.value.bluetoothLinked)
+    }
+
+    @Test
+    fun withLoadedNds_bluetoothConnectOfferedInMenu() {
+        val cores = mutableListOf<FakeCore>()
+        val viewModel = EmuladorStartViewModel(
+            startCore = { FakeCore().also(cores::add) },
+            autoAdvance = false,
+        )
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+
+        assertTrue(viewModel.uiState.value.bluetoothConnectVisible)
+        assertFalse(viewModel.uiState.value.bluetoothLinked)
+    }
+
+    @Test
     fun afterReinstallFromBuild_loadsFromBackupWhenInternalStorageCleared() {
         val primary = createTempDirectory("nds-primary").toFile()
         val backup = createTempDirectory("nds-backup").toFile()
