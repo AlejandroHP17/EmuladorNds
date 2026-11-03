@@ -20,11 +20,11 @@ import pelkidev.com.mx.emuladornds.domain.NdsFrame
 class EmuladorStartViewModelTest {
 
     @Test
-    fun bundledRoms_listsOnlyHeartGold() {
+    fun bundledRoms_listsHeartGoldThenSoulSilver() {
         val viewModel = EmuladorStartViewModel(startCore = { FakeCore() }, autoAdvance = false)
 
         assertEquals(EmuladorStartViewModel.defaultBundledRoms, viewModel.uiState.value.bundledRoms)
-        assertEquals(1, viewModel.uiState.value.bundledRoms.size)
+        assertEquals(2, viewModel.uiState.value.bundledRoms.size)
     }
 
     @Test
@@ -43,6 +43,23 @@ class EmuladorStartViewModelTest {
         assertEquals("pokemon-heartgold.nds", viewModel.uiState.value.loadedFileName)
         assertEquals(listOf("/cache/pokemon-heartgold.nds"), paths)
         assertFalse(viewModel.uiState.value.showInvalidFileMessage)
+    }
+
+    @Test
+    fun bundledRomChosen_soulSilver_loadsItsPath() {
+        val paths = mutableListOf<String>()
+        val viewModel = EmuladorStartViewModel(
+            startCore = { path ->
+                paths.add(path)
+                FakeCore()
+            },
+            autoAdvance = false,
+        )
+
+        viewModel.onBundledRomChosen("pokemon-soulsilver.nds") { "/cache/pokemon-soulsilver.nds" }
+
+        assertEquals("pokemon-soulsilver.nds", viewModel.uiState.value.loadedFileName)
+        assertEquals(listOf("/cache/pokemon-soulsilver.nds"), paths)
     }
 
     @Test
