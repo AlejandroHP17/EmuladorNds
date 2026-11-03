@@ -47,7 +47,13 @@ data class CheatMenuItem(
     val active: Boolean = false,
 )
 
+data class BundledNdsRom(
+    val title: String,
+    val assetName: String,
+)
+
 data class EmuladorStartUiState(
+    val bundledRoms: List<BundledNdsRom> = EmuladorStartViewModel.defaultBundledRoms,
     val loadedFileName: String? = null,
     val showInvalidFileMessage: Boolean = false,
     val menuOpen: Boolean = false,
@@ -81,6 +87,10 @@ class EmuladorStartViewModel(
     private var paceJob: Job? = null
     private val paceDispatcher: CoroutineDispatcher by lazy { newPaceDispatcher() }
     private var heldButtons = emptySet<NdsButton>()
+
+    fun onBundledRomChosen(assetName: String, prepareRomPath: () -> String?) {
+        onFileChosen(assetName, prepareRomPath)
+    }
 
     fun onFileChosen(fileName: String, prepareRomPath: () -> String?) {
         if (!isNdsFileName(fileName)) {
@@ -413,6 +423,12 @@ class EmuladorStartViewModel(
         stopCore()
         (paceDispatcher as? ExecutorCoroutineDispatcher)?.close()
         super.onCleared()
+    }
+
+    companion object {
+        val defaultBundledRoms: List<BundledNdsRom> = listOf(
+            BundledNdsRom(title = "Pokémon HeartGold", assetName = "pokemon-heartgold.nds"),
+        )
     }
 }
 

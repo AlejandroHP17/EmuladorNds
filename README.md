@@ -2,7 +2,7 @@
 
 Emulador embebible para [MiniJuegos](https://github.com/AlejandroHP17/MiniJuegos). Vive en su propio repo: library publicable (AAR) y app shell para probarlo aparte.
 
-La app no incluye ROMs. El jugador aporta su archivo `.nds`.
+Los juegos de Rooms y la BIOS/firmware van en `emuladornds/src/main/assets/` y se publican con el AAR. Otros `.nds` sueltos no van al repo; el jugador puede seguir usando «Elegir .nds».
 
 ## Artefacto Maven
 
