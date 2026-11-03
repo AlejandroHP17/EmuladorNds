@@ -31,11 +31,9 @@ local.properties
 *.jks
 *.keystore
 
-# ROMs sueltos y partidas: no en el repo (sí los empaquetados en assets/ del library)
+# ROMs, BIOS y partidas: nunca en el repo
 *.nds
 *.NDS
-!emuladornds/src/main/assets/
-!emuladornds/src/main/assets/**
 *.srl
 *.SRL
 *.sav
@@ -44,9 +42,7 @@ local.properties
 *.dst
 *.ml[0-9]
 bios*.bin
-!emuladornds/src/main/assets/bios*.bin
 *firmware*.bin
-!emuladornds/src/main/assets/*firmware*.bin
 
 # Sistema
 .DS_Store

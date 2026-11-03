@@ -20,32 +20,6 @@ import pelkidev.com.mx.emuladornds.domain.NdsFrame
 class EmuladorStartViewModelTest {
 
     @Test
-    fun bundledRoms_listsOnlyHeartGold() {
-        val viewModel = EmuladorStartViewModel(startCore = { FakeCore() }, autoAdvance = false)
-
-        assertEquals(EmuladorStartViewModel.defaultBundledRoms, viewModel.uiState.value.bundledRoms)
-        assertEquals(1, viewModel.uiState.value.bundledRoms.size)
-    }
-
-    @Test
-    fun bundledRomChosen_loadsRomPath() {
-        val paths = mutableListOf<String>()
-        val viewModel = EmuladorStartViewModel(
-            startCore = { path ->
-                paths.add(path)
-                FakeCore()
-            },
-            autoAdvance = false,
-        )
-
-        viewModel.onBundledRomChosen("pokemon-heartgold.nds") { "/cache/pokemon-heartgold.nds" }
-
-        assertEquals("pokemon-heartgold.nds", viewModel.uiState.value.loadedFileName)
-        assertEquals(listOf("/cache/pokemon-heartgold.nds"), paths)
-        assertFalse(viewModel.uiState.value.showInvalidFileMessage)
-    }
-
-    @Test
     fun step_putsKnownPixelOnBothScreens() {
         val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
