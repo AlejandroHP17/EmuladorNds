@@ -61,6 +61,7 @@ import java.io.File
 import pelkidev.com.mx.emuladornds.data.AndroidNdsBluetoothLink
 import pelkidev.com.mx.emuladornds.data.NdsButton
 import pelkidev.com.mx.emuladornds.data.NdsStateStore
+import pelkidev.com.mx.emuladornds.domain.loadNdsBootAssets
 
 @Composable
 private fun rememberEmuladorStartViewModel(): EmuladorStartViewModel {
@@ -91,6 +92,7 @@ fun EmuladorStartScreen(
     val topFrame by viewModel.topFrame.collectAsStateWithLifecycle()
     val bottomFrame by viewModel.bottomFrame.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val bootAssets = remember(context) { readNdsBootAssets(context) }
     val requestBluetoothConnect = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestPermission(),
     ) { granted ->
@@ -104,7 +106,7 @@ fun EmuladorStartScreen(
     ) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         val name = displayName(context, uri)
-        viewModel.onFileChosen(name) {
+        viewModel.onFileChosen(name, bootAssets) {
             copyRomToCache(context, uri)
         }
     }
@@ -132,7 +134,7 @@ fun EmuladorStartScreen(
                     if (bundledAssetExists(context, rom.assetName)) {
                         Button(
                             onClick = {
-                                viewModel.onBundledRomChosen(rom.assetName) {
+                                viewModel.onBundledRomChosen(rom.assetName, bootAssets) {
                                     copyBundledRomToCache(context, rom.assetName)
                                 }
                             },
@@ -553,6 +555,20 @@ private fun Color.pressed(): Color = Color(
     blue = blue * 0.62f,
     alpha = alpha,
 )
+
+private fun readNdsBootAssets(context: Context) = loadNdsBootAssets(
+    readAssetBytes(context, "bios9.bin"),
+    readAssetBytes(context, "bios7.bin"),
+    readAssetBytes(context, "firmware.bin"),
+)
+
+private fun readAssetBytes(context: Context, assetName: String): ByteArray? {
+    return try {
+        context.assets.open(assetName).use { it.readBytes() }
+    } catch (_: Exception) {
+        null
+    }
+}
 
 private fun bundledAssetExists(context: Context, assetName: String): Boolean {
     return try {
