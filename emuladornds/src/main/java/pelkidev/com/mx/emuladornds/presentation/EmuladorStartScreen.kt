@@ -128,20 +128,6 @@ fun EmuladorStartScreen(
                     style = MaterialTheme.typography.headlineMedium,
                     textAlign = TextAlign.Center,
                 )
-                uiState.bundledRoms.forEach { rom ->
-                    if (bundledAssetExists(context, rom.assetName)) {
-                        Button(
-                            onClick = {
-                                viewModel.onBundledRomChosen(rom.assetName) {
-                                    copyBundledRomToCache(context, rom.assetName)
-                                }
-                            },
-                            modifier = Modifier.padding(top = 8.dp),
-                        ) {
-                            Text(text = rom.title)
-                        }
-                    }
-                }
                 Button(
                     onClick = { pickNdsFile.launch(arrayOf("*/*")) },
                     modifier = Modifier.padding(top = 8.dp),
@@ -553,29 +539,6 @@ private fun Color.pressed(): Color = Color(
     blue = blue * 0.62f,
     alpha = alpha,
 )
-
-private fun bundledAssetExists(context: Context, assetName: String): Boolean {
-    return try {
-        context.assets.open(assetName).close()
-        true
-    } catch (_: Exception) {
-        false
-    }
-}
-
-private fun copyBundledRomToCache(context: Context, assetName: String): String? {
-    val dest = File(context.cacheDir, assetName)
-    return try {
-        context.assets.open(assetName).use { input ->
-            dest.outputStream().use { output ->
-                input.copyTo(output, bufferSize = 64 * 1024)
-            }
-        }
-        dest.absolutePath
-    } catch (_: Exception) {
-        null
-    }
-}
 
 private fun copyRomToCache(context: Context, uri: Uri): String? {
     val dest = File(context.cacheDir, "session.nds")

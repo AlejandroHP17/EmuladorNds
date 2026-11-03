@@ -50,10 +50,6 @@ android {
         compose = true
     }
 
-    androidResources {
-        noCompress += listOf("nds", "NDS", "bin")
-    }
-
     publishing {
         singleVariant("release") {
             withSourcesJar()
