@@ -428,7 +428,6 @@ class EmuladorStartViewModel(
     companion object {
         val defaultBundledRoms: List<BundledNdsRom> = listOf(
             BundledNdsRom(title = "Pokémon HeartGold", assetName = "pokemon-heartgold.nds"),
-            BundledNdsRom(title = "Pokémon SoulSilver", assetName = "pokemon-soulsilver.nds"),
         )
     }
 }
