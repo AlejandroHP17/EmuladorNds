@@ -1,18 +1,15 @@
 #include <jni.h>
 
 #include <algorithm>
-#include <cstring>
 #include <cstdint>
 #include <cstdio>
 #include <memory>
-#include <vector>
 
 #include "ARCodeFile.h"
 #include "Args.h"
 #include "NDS.h"
 #include "NDSCart.h"
 #include "Savestate.h"
-#include "SPI_Firmware.h"
 #include "types.h"
 
 namespace {
@@ -94,54 +91,13 @@ int ResampleTo48k(
     return written;
 }
 
-bool ReadJByteArray(JNIEnv* env, jbyteArray array, std::vector<melonDS::u8>* out) {
-    out->clear();
-    if (array == nullptr) {
-        return true;
-    }
-    const jsize length = env->GetArrayLength(array);
-    if (length <= 0) {
-        return true;
-    }
-    out->resize(static_cast<size_t>(length));
-    env->GetByteArrayRegion(
-            array,
-            0,
-            length,
-            reinterpret_cast<jbyte*>(out->data()));
-    return true;
-}
-
-melonDS::NDSArgs BuildNdsArgs(
-        const std::vector<melonDS::u8>& arm9,
-        const std::vector<melonDS::u8>& arm7,
-        const std::vector<melonDS::u8>& firmware) {
-    melonDS::NDSArgs args;
-    if (arm9.size() == 4096 && arm7.size() == 16384) {
-        auto arm9Image = std::make_unique<melonDS::ARM9BIOSImage>();
-        std::memcpy(arm9Image->data(), arm9.data(), 4096);
-        auto arm7Image = std::make_unique<melonDS::ARM7BIOSImage>();
-        std::memcpy(arm7Image->data(), arm7.data(), 16384);
-        args.ARM9BIOS = std::move(arm9Image);
-        args.ARM7BIOS = std::move(arm7Image);
-    }
-    const size_t fwSize = firmware.size();
-    if (fwSize == 131072 || fwSize == 262144 || fwSize == 524288) {
-        args.Firmware = melonDS::Firmware(firmware.data(), static_cast<melonDS::u32>(fwSize));
-    }
-    return args;
-}
-
 }  // namespace
 
 extern "C" JNIEXPORT jlong JNICALL
 Java_pelkidev_com_mx_emuladornds_data_MelonDsCore_nativeCreate(
         JNIEnv* env,
         jobject /* thiz */,
-        jstring romPath,
-        jbyteArray arm9Bios,
-        jbyteArray arm7Bios,
-        jbyteArray firmwareBlob) {
+        jstring romPath) {
     if (romPath == nullptr) {
         return 0;
     }
@@ -162,19 +118,9 @@ Java_pelkidev_com_mx_emuladornds_data_MelonDsCore_nativeCreate(
         return 0;
     }
 
-    std::vector<melonDS::u8> arm9;
-    std::vector<melonDS::u8> arm7;
-    std::vector<melonDS::u8> firmware;
-    if (!ReadJByteArray(env, arm9Bios, &arm9) ||
-        !ReadJByteArray(env, arm7Bios, &arm7) ||
-        !ReadJByteArray(env, firmwareBlob, &firmware)) {
-        return 0;
-    }
-
     auto machine = std::make_unique<Machine>();
     try {
-        machine->nds = std::make_unique<melonDS::NDS>(
-                BuildNdsArgs(arm9, arm7, firmware));
+        machine->nds = std::make_unique<melonDS::NDS>(melonDS::NDSArgs{});
         machine->nds->SetNDSCart(std::move(cart));
         machine->nds->Reset();
         if (machine->nds->NeedsDirectBoot()) {

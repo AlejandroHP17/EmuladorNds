@@ -21,7 +21,6 @@ import pelkidev.com.mx.emuladornds.data.NdsButton
 import pelkidev.com.mx.emuladornds.data.NdsCore
 import pelkidev.com.mx.emuladornds.data.NoOpNdsBluetoothLink
 import pelkidev.com.mx.emuladornds.data.NdsStateStore
-import pelkidev.com.mx.emuladornds.domain.NdsBootAssets
 import pelkidev.com.mx.emuladornds.domain.NdsFrame
 import pelkidev.com.mx.emuladornds.domain.NdsPace
 import pelkidev.com.mx.emuladornds.domain.isNdsFileName
@@ -69,7 +68,7 @@ data class EmuladorStartUiState(
 }
 
 class EmuladorStartViewModel(
-    private val startCore: (String, NdsBootAssets) -> NdsCore = { rom, boot -> MelonDsCore(rom, boot) },
+    private val startCore: (String) -> NdsCore = ::MelonDsCore,
     private val autoAdvance: Boolean = true,
     private val stateStore: NdsStateStore? = null,
     private val bluetoothLink: NdsBluetoothLink = NoOpNdsBluetoothLink,
@@ -89,19 +88,11 @@ class EmuladorStartViewModel(
     private val paceDispatcher: CoroutineDispatcher by lazy { newPaceDispatcher() }
     private var heldButtons = emptySet<NdsButton>()
 
-    fun onBundledRomChosen(
-        assetName: String,
-        boot: NdsBootAssets = NdsBootAssets(),
-        prepareRomPath: () -> String?,
-    ) {
-        onFileChosen(assetName, boot, prepareRomPath)
+    fun onBundledRomChosen(assetName: String, prepareRomPath: () -> String?) {
+        onFileChosen(assetName, prepareRomPath)
     }
 
-    fun onFileChosen(
-        fileName: String,
-        boot: NdsBootAssets = NdsBootAssets(),
-        prepareRomPath: () -> String?,
-    ) {
+    fun onFileChosen(fileName: String, prepareRomPath: () -> String?) {
         if (!isNdsFileName(fileName)) {
             _uiState.update { it.copy(showInvalidFileMessage = true) }
             return
@@ -128,7 +119,7 @@ class EmuladorStartViewModel(
             )
         }
         val opened = try {
-            startCore(romPath, boot)
+            startCore(romPath)
         } catch (_: RuntimeException) {
             null
         } ?: return

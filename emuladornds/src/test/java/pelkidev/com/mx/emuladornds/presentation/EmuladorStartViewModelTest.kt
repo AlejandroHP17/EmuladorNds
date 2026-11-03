@@ -21,7 +21,7 @@ class EmuladorStartViewModelTest {
 
     @Test
     fun bundledRoms_listsHeartGoldThenSoulSilver() {
-        val viewModel = EmuladorStartViewModel(startCore = { _, _ -> FakeCore() }, autoAdvance = false)
+        val viewModel = EmuladorStartViewModel(startCore = { FakeCore() }, autoAdvance = false)
 
         assertEquals(EmuladorStartViewModel.defaultBundledRoms, viewModel.uiState.value.bundledRoms)
         assertEquals(2, viewModel.uiState.value.bundledRoms.size)
@@ -31,7 +31,7 @@ class EmuladorStartViewModelTest {
     fun bundledRomChosen_loadsRomPath() {
         val paths = mutableListOf<String>()
         val viewModel = EmuladorStartViewModel(
-            startCore = { path, _ ->
+            startCore = { path ->
                 paths.add(path)
                 FakeCore()
             },
@@ -39,7 +39,6 @@ class EmuladorStartViewModelTest {
         )
 
         viewModel.onBundledRomChosen("pokemon-heartgold.nds") { "/cache/pokemon-heartgold.nds" }
-
 
         assertEquals("pokemon-heartgold.nds", viewModel.uiState.value.loadedFileName)
         assertEquals(listOf("/cache/pokemon-heartgold.nds"), paths)
@@ -50,7 +49,7 @@ class EmuladorStartViewModelTest {
     fun bundledRomChosen_soulSilver_loadsItsPath() {
         val paths = mutableListOf<String>()
         val viewModel = EmuladorStartViewModel(
-            startCore = { path, _ ->
+            startCore = { path ->
                 paths.add(path)
                 FakeCore()
             },
@@ -67,7 +66,7 @@ class EmuladorStartViewModelTest {
     fun step_putsKnownPixelOnBothScreens() {
         val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> FakeCore().also(cores::add) },
+            startCore = { FakeCore().also(cores::add) },
             autoAdvance = false,
         )
 
@@ -87,7 +86,7 @@ class EmuladorStartViewModelTest {
     fun withoutNds_doesNotStartCore() {
         val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> FakeCore().also(cores::add) },
+            startCore = { FakeCore().also(cores::add) },
             autoAdvance = false,
         )
 
@@ -102,7 +101,7 @@ class EmuladorStartViewModelTest {
     fun changingRom_closesPreviousCore() {
         val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> FakeCore().also(cores::add) },
+            startCore = { FakeCore().also(cores::add) },
             autoAdvance = false,
         )
 
@@ -124,7 +123,7 @@ class EmuladorStartViewModelTest {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     return EmuladorStartViewModel(
-                        startCore = { _, _ -> FakeCore().also(cores::add) },
+                        startCore = { FakeCore().also(cores::add) },
                         autoAdvance = false,
                     ) as T
                 }
@@ -141,7 +140,7 @@ class EmuladorStartViewModelTest {
     fun twoControls_heldTogether() {
         val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> FakeCore().also(cores::add) },
+            startCore = { FakeCore().also(cores::add) },
             autoAdvance = false,
         )
 
@@ -156,7 +155,7 @@ class EmuladorStartViewModelTest {
     fun releasingControl_clearsThatButton() {
         val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> FakeCore().also(cores::add) },
+            startCore = { FakeCore().also(cores::add) },
             autoAdvance = false,
         )
 
@@ -171,7 +170,7 @@ class EmuladorStartViewModelTest {
     @Test
     fun menu_startsClosed_togglesAndResetsOnNewRom() {
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> FakeCore() },
+            startCore = { FakeCore() },
             autoAdvance = false,
         )
 
@@ -432,7 +431,7 @@ class EmuladorStartViewModelTest {
     fun fastForward_cyclesTwoFourAndNormal() {
         val cores = mutableListOf<RememberingCore>()
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> RememberingCore().also(cores::add) },
+            startCore = { RememberingCore().also(cores::add) },
             autoAdvance = false,
         )
         viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
@@ -471,7 +470,7 @@ class EmuladorStartViewModelTest {
     fun fastForward_staysOnWhenMenuCloses() {
         val cores = mutableListOf<RememberingCore>()
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> RememberingCore().also(cores::add) },
+            startCore = { RememberingCore().also(cores::add) },
             autoAdvance = false,
         )
         viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
@@ -635,7 +634,7 @@ class EmuladorStartViewModelTest {
     fun withLoadedNds_bluetoothConnectOfferedInMenu() {
         val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> FakeCore().also(cores::add) },
+            startCore = { FakeCore().also(cores::add) },
             autoAdvance = false,
         )
         viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
@@ -663,7 +662,7 @@ class EmuladorStartViewModelTest {
         val peer = PairingNdsBluetoothLink()
         val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> FakeCore().also(cores::add) },
+            startCore = { FakeCore().also(cores::add) },
             autoAdvance = false,
             bluetoothLink = link,
         )
@@ -723,7 +722,7 @@ class EmuladorStartViewModelTest {
     @Test
     fun genericNds_hasNoPreparedCheats() {
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> FakeCore() },
+            startCore = { FakeCore() },
             autoAdvance = false,
         )
 
@@ -735,7 +734,7 @@ class EmuladorStartViewModelTest {
     @Test
     fun heartGold_listsPreparedCheatsInactive() {
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> FakeCore() },
+            startCore = { FakeCore() },
             autoAdvance = false,
         )
 
@@ -756,7 +755,7 @@ class EmuladorStartViewModelTest {
     fun activatingCheat_appliesToCoreAndMarksActive() {
         val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> FakeCore().also(cores::add) },
+            startCore = { FakeCore().also(cores::add) },
             autoAdvance = false,
         )
         viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
@@ -771,7 +770,7 @@ class EmuladorStartViewModelTest {
     fun secondCheat_staysActiveWithFirst() {
         val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> FakeCore().also(cores::add) },
+            startCore = { FakeCore().also(cores::add) },
             autoAdvance = false,
         )
         viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
@@ -787,7 +786,7 @@ class EmuladorStartViewModelTest {
     @Test
     fun experienceMultipliers_replaceEachOther() {
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> FakeCore() },
+            startCore = { FakeCore() },
             autoAdvance = false,
         )
         viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
@@ -803,7 +802,7 @@ class EmuladorStartViewModelTest {
     fun removedCheats_doNotAppearOrActivate() {
         val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> FakeCore().also(cores::add) },
+            startCore = { FakeCore().also(cores::add) },
             autoAdvance = false,
         )
         viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
@@ -823,7 +822,7 @@ class EmuladorStartViewModelTest {
     fun deactivatingCheat_clearsCoreAndMenu() {
         val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> FakeCore().also(cores::add) },
+            startCore = { FakeCore().also(cores::add) },
             autoAdvance = false,
         )
         viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
@@ -839,7 +838,7 @@ class EmuladorStartViewModelTest {
     fun deactivatedCheat_staysOffWhilePlaying() {
         val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> FakeCore().also(cores::add) },
+            startCore = { FakeCore().also(cores::add) },
             autoAdvance = false,
         )
         viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
@@ -857,7 +856,7 @@ class EmuladorStartViewModelTest {
     fun deactivatingOne_leavesOtherCheatsActive() {
         val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> FakeCore().also(cores::add) },
+            startCore = { FakeCore().also(cores::add) },
             autoAdvance = false,
         )
         viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
@@ -875,7 +874,7 @@ class EmuladorStartViewModelTest {
     fun deactivatingInactiveCheat_isIgnored() {
         val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> FakeCore().also(cores::add) },
+            startCore = { FakeCore().also(cores::add) },
             autoAdvance = false,
         )
         viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
@@ -889,7 +888,7 @@ class EmuladorStartViewModelTest {
     @Test
     fun twoActive_onlyThoseMarkedOnInMenu() {
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> FakeCore() },
+            startCore = { FakeCore() },
             autoAdvance = false,
         )
         viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
@@ -905,7 +904,7 @@ class EmuladorStartViewModelTest {
     fun unknownCheatId_doesNotActivate() {
         val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> FakeCore().also(cores::add) },
+            startCore = { FakeCore().also(cores::add) },
             autoAdvance = false,
         )
         viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
@@ -921,7 +920,7 @@ class EmuladorStartViewModelTest {
     fun newRom_clearsMultipleActiveCheatsAndReloadsList() {
         val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> FakeCore().also(cores::add) },
+            startCore = { FakeCore().also(cores::add) },
             autoAdvance = false,
         )
         viewModel.onFileChosen("Pokemon HeartGold.nds") { "/tmp/hg.nds" }
@@ -941,7 +940,7 @@ class EmuladorStartViewModelTest {
     fun newRom_startsWithEmptyHold() {
         val cores = mutableListOf<FakeCore>()
         val viewModel = EmuladorStartViewModel(
-            startCore = { _, _ -> FakeCore().also(cores::add) },
+            startCore = { FakeCore().also(cores::add) },
             autoAdvance = false,
         )
 
@@ -982,7 +981,7 @@ class EmuladorStartViewModelTest {
         backupDirectory: File? = null,
     ): EmuladorStartViewModel =
         EmuladorStartViewModel(
-            startCore = { _, _ -> RememberingCore().also(cores::add) },
+            startCore = { RememberingCore().also(cores::add) },
             autoAdvance = false,
             stateStore = NdsStateStore(directory, backupDirectory),
         )

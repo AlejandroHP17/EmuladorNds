@@ -3,7 +3,6 @@ package pelkidev.com.mx.emuladornds.data
 import android.media.AudioAttributes
 import android.media.AudioFormat
 import android.media.AudioTrack
-import pelkidev.com.mx.emuladornds.domain.NdsBootAssets
 import pelkidev.com.mx.emuladornds.domain.NdsFrame
 
 /** Orden de bits de melonDS 1.0: A, B, Select, Start, Right, Left, Up, Down, R, L, X, Y. */
@@ -42,19 +41,11 @@ interface NdsCore {
     val audioPaced: Boolean get() = false
 }
 
-class MelonDsCore(
-    romPath: String,
-    boot: NdsBootAssets = NdsBootAssets(),
-) : NdsCore {
+class MelonDsCore(romPath: String) : NdsCore {
     private val topPixels = IntArray(NdsFrame.WIDTH * NdsFrame.HEIGHT)
     private val bottomPixels = IntArray(NdsFrame.WIDTH * NdsFrame.HEIGHT)
     private val pcm = ShortArray(AUDIO_BUFFER_SAMPLES * 2)
-    private var handle: Long = nativeCreate(
-        romPath,
-        boot.arm9Bios ?: ByteArray(0),
-        boot.arm7Bios ?: ByteArray(0),
-        boot.firmware ?: ByteArray(0),
-    )
+    private var handle: Long = nativeCreate(romPath)
     private var track = openTrack()
     private var produced = 0
 
@@ -150,12 +141,7 @@ class MelonDsCore(
         handle = 0L
     }
 
-    private external fun nativeCreate(
-        romPath: String,
-        arm9Bios: ByteArray,
-        arm7Bios: ByteArray,
-        firmware: ByteArray,
-    ): Long
+    private external fun nativeCreate(romPath: String): Long
 
     private external fun nativeRunFrame(
         handle: Long,
