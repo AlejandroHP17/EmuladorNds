@@ -2,7 +2,7 @@
 
 Emulador embebible para [MiniJuegos](https://github.com/AlejandroHP17/MiniJuegos). Vive en su propio repo: library publicable (AAR) y app shell para probarlo aparte.
 
-Los juegos de Rooms y la BIOS/firmware van en `emuladornds/src/main/assets/` y se publican con el AAR. Los `.nds` de Rooms usan **Git LFS** (superan 100 MB en GitHub). Tras clonar: `git lfs pull`. Otros `.nds` sueltos no van al repo; el jugador puede seguir usando «Elegir .nds».
+Los juegos de Rooms van en `emuladornds/src/main/assets/` y se publican con el AAR. Los `.nds` de Rooms usan **Git LFS** (superan 100 MB en GitHub). Tras clonar: `git lfs pull`. Otros `.nds` sueltos no van al repo; el jugador puede seguir usando «Elegir .nds». BIOS y firmware de consola no se empaquetan: melonDS usa FreeBIOS y firmware generado.
 
 ## Artefacto Maven
 
