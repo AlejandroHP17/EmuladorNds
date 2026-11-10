@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import java.io.File
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.io.path.createTempDirectory
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -441,6 +443,56 @@ class EmuladorStartViewModelTest {
         viewModel.onConsoleTick()
 
         assertEquals(2, cores[0].steps)
+    }
+
+    @Test
+    fun consoleTick_showsBothScreensBeforeAudioWait() {
+        val pixel = 0xFF224466.toInt()
+        val core = BlockingAudioCore(pixel)
+        val viewModel = EmuladorStartViewModel(
+            startCore = { core },
+            autoAdvance = false,
+        )
+        core.viewModel = viewModel
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+
+        viewModel.onConsoleTick()
+
+        assertTrue(core.visibleDuringAudio)
+        assertEquals(pixel, viewModel.topFrame.value!!.pixel(0, 0))
+        assertEquals(pixel, viewModel.bottomFrame.value!!.pixel(0, 0))
+    }
+
+    @Test
+    fun audioWait_doesNotBlockStylus() {
+        val entered = CountDownLatch(1)
+        val release = CountDownLatch(1)
+        val core = BlockingAudioCore(
+            pixel = 0xFF224466.toInt(),
+            audioEntered = entered,
+            releaseAudio = release,
+        )
+        val viewModel = EmuladorStartViewModel(
+            startCore = { core },
+            autoAdvance = false,
+        )
+        viewModel.onFileChosen("juego.nds") { "/tmp/juego.nds" }
+
+        val pace = Thread { viewModel.onConsoleTick() }
+        pace.start()
+        assertTrue(entered.await(2, TimeUnit.SECONDS))
+
+        val stylusDone = CountDownLatch(1)
+        Thread {
+            viewModel.onStylusMoved(10, 12)
+            stylusDone.countDown()
+        }.start()
+
+        assertTrue(stylusDone.await(500, TimeUnit.MILLISECONDS))
+        release.countDown()
+        pace.join(2000)
+        assertFalse(pace.isAlive)
+        assertTrue(core.touched)
     }
 
     @Test
@@ -966,6 +1018,40 @@ class EmuladorStartViewModelTest {
         override fun close() {
             closed = true
         }
+    }
+
+    private class BlockingAudioCore(
+        private val pixel: Int,
+        private val audioEntered: CountDownLatch? = null,
+        private val releaseAudio: CountDownLatch? = null,
+    ) : NdsCore {
+        var viewModel: EmuladorStartViewModel? = null
+        var visibleDuringAudio = false
+            private set
+        var touched = false
+            private set
+
+        override fun renderFrame(): Pair<NdsFrame, NdsFrame> {
+            val pixels = IntArray(NdsFrame.WIDTH * NdsFrame.HEIGHT) { pixel }
+            val frame = NdsFrame(pixels)
+            return frame to frame
+        }
+
+        override fun step(): Pair<NdsFrame, NdsFrame> = renderFrame()
+
+        override fun playPendingAudio(blocking: Boolean) {
+            val shown = viewModel
+            visibleDuringAudio = shown?.topFrame?.value?.pixel(0, 0) == pixel &&
+                shown.bottomFrame.value?.pixel(0, 0) == pixel
+            audioEntered?.countDown()
+            releaseAudio?.await(2, TimeUnit.SECONDS)
+        }
+
+        override fun touch(x: Int, y: Int) {
+            touched = x == 10 && y == 12
+        }
+
+        override fun close() {}
     }
 
     private class FakeCore : NdsCore {

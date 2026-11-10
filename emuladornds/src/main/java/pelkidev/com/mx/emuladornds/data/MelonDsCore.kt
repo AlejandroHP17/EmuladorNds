@@ -24,6 +24,15 @@ enum class NdsButton {
 interface NdsCore {
     fun step(): Pair<NdsFrame, NdsFrame>
 
+    /**
+     * Cuadro nuevo sin escribir el audio.
+     * Por defecto hace lo mismo que [step] (el audio ya va incluido).
+     */
+    fun renderFrame(): Pair<NdsFrame, NdsFrame> = step()
+
+    /** Escribe el audio que [renderFrame] dejó pendiente. Por defecto no hay audio pendiente. */
+    fun playPendingAudio(blocking: Boolean) {}
+
     fun fastStep(): Pair<NdsFrame, NdsFrame> = step()
     fun hold(buttons: Set<NdsButton>) {}
     fun touch(x: Int, y: Int) {}
@@ -37,7 +46,7 @@ interface NdsCore {
     /** Action Replay preparados; vacío quita trucos activos. */
     fun setActiveCheats(cheatCodes: List<IntArray>) {}
 
-    /** Si es true, `step()` ya espera al audio y el ViewModel no añade otra pausa. */
+    /** Si es true, el avance ya espera al audio y el ViewModel no añade otra pausa. */
     val audioPaced: Boolean get() = false
 }
 
@@ -48,6 +57,8 @@ class MelonDsCore(romPath: String) : NdsCore {
     private var handle: Long = nativeCreate(romPath)
     private var track = openTrack()
     private var produced = 0
+    private var audioPending = false
+    private val audioLock = Any()
 
     @Volatile
     private var keys = KEYS_RELEASED
@@ -86,32 +97,45 @@ class MelonDsCore(romPath: String) : NdsCore {
         touching = false
     }
 
-    override fun step(): Pair<NdsFrame, NdsFrame> = runFrame(blocking = true)
-
-    override fun fastStep(): Pair<NdsFrame, NdsFrame> = runFrame(blocking = false)
-
-    private fun runFrame(blocking: Boolean): Pair<NdsFrame, NdsFrame> {
-        check(handle != 0L) { "melonDS ya está cerrado" }
-        produced = nativeRunFrame(
-            handle,
-            topPixels,
-            bottomPixels,
-            keys,
-            touching,
-            touchX,
-            touchY,
-            pcm,
-        )
-        playProduced(blocking)
-        return NdsFrame(topPixels) to NdsFrame(bottomPixels)
+    override fun step(): Pair<NdsFrame, NdsFrame> {
+        val frames = renderFrame()
+        playPendingAudio(blocking = true)
+        return frames
     }
 
-    private fun playProduced(blocking: Boolean) {
-        val track = track ?: return
-        if (produced <= 0) return
-        if (track.playState != AudioTrack.PLAYSTATE_PLAYING) track.play()
-        val mode = if (blocking) AudioTrack.WRITE_BLOCKING else AudioTrack.WRITE_NON_BLOCKING
-        track.write(pcm, 0, produced * 2, mode)
+    override fun fastStep(): Pair<NdsFrame, NdsFrame> {
+        val frames = renderFrame()
+        playPendingAudio(blocking = false)
+        return frames
+    }
+
+    override fun renderFrame(): Pair<NdsFrame, NdsFrame> {
+        check(handle != 0L) { "melonDS ya está cerrado" }
+        return synchronized(audioLock) {
+            produced = nativeRunFrame(
+                handle,
+                topPixels,
+                bottomPixels,
+                keys,
+                touching,
+                touchX,
+                touchY,
+                pcm,
+            )
+            audioPending = produced > 0 && track != null
+            NdsFrame(topPixels) to NdsFrame(bottomPixels)
+        }
+    }
+
+    override fun playPendingAudio(blocking: Boolean) {
+        synchronized(audioLock) {
+            val current = track ?: return
+            if (!audioPending || produced <= 0) return
+            audioPending = false
+            if (current.playState != AudioTrack.PLAYSTATE_PLAYING) current.play()
+            val mode = if (blocking) AudioTrack.WRITE_BLOCKING else AudioTrack.WRITE_NON_BLOCKING
+            current.write(pcm, 0, produced * 2, mode)
+        }
     }
 
     override fun exportState(): ByteArray {
@@ -130,12 +154,17 @@ class MelonDsCore(romPath: String) : NdsCore {
     }
 
     override fun close() {
-        track?.let { playing ->
-            if (playing.playState == AudioTrack.PLAYSTATE_PLAYING) playing.pause()
-            playing.flush()
-            playing.release()
+        val playing = synchronized(audioLock) {
+            audioPending = false
+            val current = track
+            track = null
+            current
         }
-        track = null
+        playing?.let { current ->
+            if (current.playState == AudioTrack.PLAYSTATE_PLAYING) current.pause()
+            current.flush()
+            current.release()
+        }
         if (handle == 0L) return
         nativeDestroy(handle)
         handle = 0L

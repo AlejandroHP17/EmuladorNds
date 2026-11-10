@@ -345,10 +345,10 @@ class EmuladorStartViewModel(
 
     fun onConsoleTick() {
         val speed = _uiState.value.fastForward
-        val frames = synchronized(coreLock) {
+        val tick = synchronized(coreLock) {
             val running = core ?: return
-            when (speed) {
-                FastForwardLevel.Off -> running.step()
+            val frames = when (speed) {
+                FastForwardLevel.Off -> running.renderFrame()
                 FastForwardLevel.Fast -> {
                     running.fastStep()
                     running.fastStep()
@@ -361,9 +361,13 @@ class EmuladorStartViewModel(
                     last
                 }
             }
+            running to frames
         }
-        _topFrame.value = frames.first
-        _bottomFrame.value = frames.second
+        _topFrame.value = tick.second.first
+        _bottomFrame.value = tick.second.second
+        if (speed == FastForwardLevel.Off) {
+            tick.first.playPendingAudio(blocking = true)
+        }
     }
 
     private fun startPace() {
