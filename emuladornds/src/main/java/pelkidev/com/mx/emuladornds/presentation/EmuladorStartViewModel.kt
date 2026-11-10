@@ -149,11 +149,7 @@ class EmuladorStartViewModel(
         if (items.any { it.id == cheatId && it.active }) return
         if (findPreparedCheat(fileName, cheatId) == null) return
         val updated = items.map { item ->
-            when {
-                item.id == cheatId -> item.copy(active = true)
-                exclusiveWith(item.id, cheatId) -> item.copy(active = false)
-                else -> item
-            }
+            if (item.id == cheatId) item.copy(active = true) else item
         }
         _uiState.update { it.copy(cheatMenuItems = updated) }
         pushActiveCheatsToCore(fileName, updated)
@@ -169,12 +165,6 @@ class EmuladorStartViewModel(
         }
         _uiState.update { it.copy(cheatMenuItems = updated) }
         pushActiveCheatsToCore(fileName, updated)
-    }
-
-    private fun exclusiveWith(currentId: String, activatedId: String): Boolean {
-        if (currentId == activatedId) return false
-        return (currentId.startsWith("exp-") && activatedId.startsWith("exp-")) ||
-            (currentId.startsWith("wild-") && activatedId.startsWith("wild-"))
     }
 
     private fun pushActiveCheatsToCore(fileName: String, items: List<CheatMenuItem>) {
